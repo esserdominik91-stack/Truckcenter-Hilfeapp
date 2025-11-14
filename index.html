@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Truck Center Hilfe – Wohnauflieger Hilfecenter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Browser- & Mobile-Farbe -->
+  <meta name="theme-color" content="#1e293b" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+
+  <!-- Favicon / App-Icon -->
+  <link rel="icon" type="image/svg+xml" href="assets/logo-truckcenter.svg" />
+  <link rel="apple-touch-icon" href="assets/logo-truckcenter.svg" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header__brand">
+      <!-- App-Logo -->
+      <img
+        src="assets/logo-truckcenter.svg"
+        alt="Truck Center Hilfe"
+        style="height:46px;border-radius:14px;border:1px solid #0f172a;background:#0f172a;"
+      />
+      <div>
+        <h1>Truck Center Hilfe</h1>
+        <p class="header__subtitle">
+          Digitales Hilfecenter für Wohnauflieger – Checklisten, Diagnose & Service.
+        </p>
+      </div>
+    </div>
+
+    <!-- Suche -->
+    <div class="header__search">
+      <input
+        id="searchInput"
+        type="search"
+        placeholder="Suche nach Thema oder Problem …"
+        autocomplete="off"
+      />
+      <!-- Container für dynamische Suchergebnisse (wird per JS gefüllt) -->
+      <ul id="searchResults" class="search-results" style="display:none;"></ul>
+    </div>
+  </header>
+
+  <!-- APP-HAUPTINHALT -->
+  <main id="app" class="app">
+    <!-- Wird komplett von js/app.js befüllt -->
+    <p>Lade Inhalte …</p>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <small>© <span id="year"></span> Truck Center Hilfe – Wohnauflieger Support</small>
+  </footer>
+
+  <!-- SCRIPTS -->
+  <script>
+    // Jahr im Footer setzen
+    document.addEventListener("DOMContentLoaded", function () {
+      var y = document.getElementById("year");
+      if (y) y.textContent = new Date().getFullYear();
+    });
+  </script>
+
+  <!-- Haupt-App-Logik (Kategorien, Topics, Steps, Diagnose, LocalStorage usw.) -->
+  <script src="js/app.js"></script>
+</body>
+</html>
