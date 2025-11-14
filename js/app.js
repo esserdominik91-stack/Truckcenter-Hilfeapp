@@ -13,9 +13,12 @@ const searchResultsEl = document.getElementById("searchResults");
 const STORAGE_KEY = "truckcenter-hilfe-steps-done";
 let doneState = {};
 
-// 👉 NEU: Google Sheet CSV-URL für zusätzliche Inhalte
+// 👉 Google Sheet CSV-URL für zusätzliche Inhalte
 const SHEET_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCXjTKGowsZ4NrxhRqueZyKaDA5ny-lSAuxNaxhCOmlk_SAmI9WBGCRnY-yeOzKOvNl_DuD4T49EMK/pub?output=csv";
+
+// 👉 Maximalzahl der Schritt-Spalten im Sheet (schritt1 … schritt20)
+const MAX_SHEET_STEPS = 20;
 
 // Icons pro Kategorie
 const categoryIconMap = {
@@ -50,9 +53,12 @@ function loadData() {
     .then(function (json) {
       data = json || [];
 
-      // 👉 Danach versuchen wir, zusätzliche Inhalte aus dem Sheet zu laden
+      // Danach versuchen wir, zusätzliche Inhalte aus dem Sheet zu laden
       return loadAdditionalContentFromSheet().catch(function (err) {
-        console.error("Zusätzliche Inhalte aus dem Sheet konnten nicht geladen werden:", err);
+        console.error(
+          "Zusätzliche Inhalte aus dem Sheet konnten nicht geladen werden:",
+          err
+        );
         return [];
       });
     })
@@ -74,7 +80,7 @@ function loadData() {
 // ----------------------------------------------
 // Zusätzliche Inhalte aus dem Google Sheet laden
 // Erwartete Spaltennamen (Zeile 1):
-// kategorie | titel | inhalt | reihenfolge | aktiv
+// kategorie | titel | inhalt | schritt1…schritt20 | reihenfolge | aktiv | highlight
 // ----------------------------------------------
 async function loadAdditionalContentFromSheet() {
   if (!SHEET_CSV_URL) {
@@ -122,7 +128,11 @@ async function loadAdditionalContentFromSheet() {
 
 // ----------------------------------------------
 // Sheet-Items in vorhandene Datenstruktur einbauen
-// Jede Zeile = neues Topic mit 1 Schritt in passender Kategorie
+// Jede Zeile = neues Topic mit mehreren Schritten (schritt1…schrittN)
+// Fallback: wenn keine schritt-Felder gefüllt sind, wird "inhalt" als ein Schritt verwendet
+// Zusätzliche Steuerung:
+//  - reihenfolge: Zahl zur Sortierung
+//  - highlight: "ja" → Top-Thema in der Kategorie
 // ----------------------------------------------
 function mergeSheetItemsIntoData(sheetItems) {
   sheetItems.forEach(function (item) {
@@ -154,9 +164,11 @@ function mergeSheetItemsIntoData(sheetItems) {
     }
 
     const title = item.titel || "Neues Thema";
-    const fullText = item.inhalt || "";
+    const introText = item.inhalt || "";
     const orderNum = parseInt(item.reihenfolge || "", 10);
     const hasValidOrder = !isNaN(orderNum);
+    const isHighlighted =
+      (item.highlight || "").trim().toLowerCase() === "ja";
 
     // Slug aus dem Titel bauen
     const baseSlug = slugify(title);
@@ -173,29 +185,62 @@ function mergeSheetItemsIntoData(sheetItems) {
       counter++;
     }
 
+    // Schritte aus schritt1…schrittN dynamisch bauen
+    const steps = [];
+    for (let i = 1; i <= MAX_SHEET_STEPS; i++) {
+      const fieldName = "schritt" + i;
+      const val = (item[fieldName] || "").trim();
+      if (!val) continue;
+
+      steps.push({
+        title: "Schritt " + i,
+        description: val,
+        actionType: "checklist"
+      });
+    }
+
+    // Fallback: keine schritt-Felder, aber "inhalt" vorhanden → 1 Schritt
+    if (steps.length === 0 && introText) {
+      steps.push({
+        title: title,
+        description: introText,
+        actionType: "checklist"
+      });
+    }
+
     const newTopic = {
       slug: topicSlug,
       title: title,
-      intro: fullText ? shortenText(fullText, 220) : "",
-      // optionales order-Feld zur Sortierung
+      intro: introText ? shortenText(introText, 220) : "",
       order: hasValidOrder ? orderNum : undefined,
-      steps: [
-        {
-          title: title,
-          description: fullText,
-          actionType: "checklist"
-        }
-      ]
+      highlight: isHighlighted,
+      steps: steps
     };
 
     category.topics.push(newTopic);
 
-    // Optional: Topics innerhalb der Kategorie nach "order" sortieren (falls gesetzt)
+    // Topics innerhalb der Kategorie sortieren:
+    // 1. highlight (ja → nach oben)
+// 2. reihenfolge (klein → nach oben)
+// 3. Titel alphabetisch
     category.topics.sort(function (a, b) {
+      const aHighlight = !!a.highlight;
+      const bHighlight = !!b.highlight;
+      if (aHighlight !== bHighlight) {
+        return aHighlight ? -1 : 1;
+      }
+
       const aOrder = typeof a.order === "number" ? a.order : 9999;
       const bOrder = typeof b.order === "number" ? b.order : 9999;
-      if (aOrder === bOrder) return 0;
-      return aOrder < bOrder ? -1 : 1;
+      if (aOrder !== bOrder) {
+        return aOrder - bOrder;
+      }
+
+      const aTitle = (a.title || "").toLowerCase();
+      const bTitle = (b.title || "").toLowerCase();
+      if (aTitle < bTitle) return -1;
+      if (aTitle > bTitle) return 1;
+      return 0;
     });
   });
 }
@@ -324,9 +369,14 @@ function openCategory(slug) {
     '<div class="grid">' +
     topics
       .map(function (topic) {
-        const subtitle = topic.intro
+        let subtitle = topic.intro
           ? shortenText(topic.intro, 110)
           : "Details öffnen";
+
+        if (topic.highlight) {
+          subtitle = "⭐ " + subtitle;
+        }
+
         return (
           '<article class="card js-topic" data-cat="' +
           category.slug +
@@ -782,7 +832,7 @@ function buildMailto(email, subject, body) {
   return "mailto:" + encodeURIComponent(email) + paramStr;
 }
 
-// 👉 NEU: einfache Slug-Funktion für Topics aus dem Sheet
+// Slug-Funktion für Topics aus dem Sheet
 function slugify(str) {
   return String(str || "")
     .toLowerCase()
@@ -792,7 +842,7 @@ function slugify(str) {
     .replace(/^-+|-+$/g, "") || "item";
 }
 
-// 👉 NEU: CSV-Parser, der auch Anführungszeichen berücksichtigt
+// CSV-Parser, der auch Anführungszeichen berücksichtigt
 function parseCsv(text) {
   const rows = [];
   let currentRow = [];
