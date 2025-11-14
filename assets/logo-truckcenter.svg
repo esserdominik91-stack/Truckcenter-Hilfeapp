@@ -1,0 +1,27 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- runder, symmetrischer Hintergrund -->
+  <rect x="64" y="64" width="896" height="896" rx="230" fill="#1E293B"/>
+
+  <!-- stilisierter, symmetrischer Truck -->
+  <rect x="220" y="360" width="584" height="200" rx="40" fill="#2563EB"/>
+  <rect x="260" y="320" width="260" height="120" rx="30" fill="#1E40AF"/>
+  <rect x="504" y="320" width="260" height="120" rx="30" fill="#1D4ED8"/>
+
+  <!-- Scheinwerfer -->
+  <circle cx="240" cy="580" r="26" fill="#FACC15"/>
+  <circle cx="784" cy="580" r="26" fill="#FACC15"/>
+
+  <!-- Räder -->
+  <circle cx="322" cy="710" r="78" fill="#0F172A"/>
+  <circle cx="702" cy="710" r="78" fill="#0F172A"/>
+  <circle cx="322" cy="710" r="44" fill="#F8FAFC"/>
+  <circle cx="702" cy="710" r="44" fill="#F8FAFC"/>
+
+  <!-- Mittel-Linie auf dem Truck -->
+  <rect x="508" y="360" width="8" height="200" fill="#EFF6FF" opacity="0.7"/>
+
+  <!-- TC Text zentriert -->
+  <text x="50%" y="260" font-size="170" fill="#F9FAFB" font-family="Arial, sans-serif" text-anchor="middle" font-weight="800">
+    TC
+  </text>
+</svg>
