@@ -1,0 +1,913 @@
+[
+  {
+    "category": "Handbuch & Einführung",
+    "slug": "handbuch-einfuehrung",
+    "subtitle": "Grundlagen für neue Wohnauflieger-Besitzer",
+    "cta": "Loslegen",
+    "topics": [
+      {
+        "title": "Fahrzeugübernahme & Einweisung",
+        "slug": "fahrzeuguebernahme",
+        "intro": "Checkliste für die Abholung Ihres Wohnaufliegers – damit bei der Übergabe nichts Wichtiges vergessen wird.",
+        "steps": [
+          {
+            "title": "Fahrgestellnummer & Papiere abgleichen",
+            "description": "Vergleichen Sie die Fahrgestellnummer am Rahmen mit den Angaben in den Fahrzeugpapieren (Zulassungsbescheinigung, COC). Bei Abweichungen sofort Rücksprache mit dem Verkäufer halten.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Kupplung, Stützlast & Sicherungsseil erklären lassen",
+            "description": "Lassen Sie sich An- und Abkuppeln praktisch zeigen. Notieren Sie die zulässige Stützlast und wo das Sicherungsseil korrekt eingehängt wird.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Slideouts, Stützen & Handbremse testen",
+            "description": "Alle Slideouts einmal aus- und einfahren, Stützen bedienen, Handbremse testen. Auf ungewöhnliche Geräusche oder Ruckler achten.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Probefahrt mit Bremsprobe",
+            "description": "Kurze Probefahrt mit Trailer, inkl. Bremsprobe und Rückwärtsfahrt. So bekommen Sie ein Gefühl für das Fahrverhalten.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Rückfragen direkt klären",
+            "description": "Offene Punkte direkt mit dem Verkäufer/Service klären – lieber einmal mehr nachfragen als später rätseln.",
+            "actionType": "contact",
+            "contact": {
+              "phone": "(04131) 242526",
+              "email": "info@truckshop.de",
+              "subject": "Fragen zur Fahrzeugübernahme Wohnauflieger",
+              "presetMessage": "Ich habe Fragen zur Übergabe/Einweisung meines Wohnaufliegers:\n\n- Fahrzeug/Modell:\n- Übergabedatum:\n- Konkrete Fragen:"
+            }
+          }
+        ]
+      },
+      {
+        "title": "Erste Schritte mit meinem Trailer",
+        "slug": "erste-schritte",
+        "intro": "Was Sie in den ersten Tagen tun sollten, um Ihren Wohnauflieger sicher zu beherrschen.",
+        "steps": [
+          {
+            "title": "Handbuch markieren statt nur überfliegen",
+            "description": "Lesen Sie gezielt die Kapitel zu Beladung, Stützlast, Elektrik, Wasser und Gas und markieren Sie wichtige Stellen mit Notizen oder Klebezetteln.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Sicherheits-Grundausstattung zusammenstellen",
+            "description": "Warndreieck, Warnweste, Verbandskasten, Unterlegkeile, Radkreuz, Taschenlampe, Handschuhe und ein Basis-Werkzeugset bereitlegen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Test-Runde ohne Zeitdruck fahren",
+            "description": "Planen Sie eine ruhige Runde (Landstraße, kein Feierabendverkehr). Üben Sie Bremsen, Ausweichen, Rangieren und Rückwärtsfahren.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Beladung & Gewichtsverteilung planen",
+            "description": "Schwere Teile tief und nahe an der Achse lagern, Hecküberladung vermeiden, Stützlast einhalten. Bei Unsicherheit Service ansprechen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Frühes Feedback an Truckshop",
+            "description": "Wenn Ihnen in den ersten Tagen etwas auffällt (Geräusche, Undichtigkeiten), frühzeitig melden.",
+            "actionType": "contact",
+            "contact": {
+              "email": "info@truckshop.de",
+              "subject": "Rückfragen nach den ersten Fahrten",
+              "presetMessage": "Nach den ersten Fahrten mit meinem Wohnauflieger sind mir folgende Punkte aufgefallen:\n\n- Fahrzeug/Modell:\n- Beobachtungen:\n- Fragen/Wünsche:"
+            }
+          }
+        ]
+      },
+      {
+        "title": "Systeme verstehen (Strom, Wasser, Gas)",
+        "slug": "systeme-verstehen",
+        "intro": "Kurzer Überblick, was im Trailer womit zusammenhängt – und wo man im Zweifel nachschaut.",
+        "steps": [
+          {
+            "title": "12V-System & Batterie-Lage kennen",
+            "description": "Lokalisiere Bordbatterie, Hauptschalter und Sicherungskasten. Im Handbuch vermerken, welche Sicherung wofür zuständig ist.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Landstrom & FI-Schutz verstehen",
+            "description": "Wie wird das CEE-Kabel eingesteckt? Wo sitzt der FI-Schalter? Test-Taste einmal drücken und Wirkung beobachten.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Wasserwege nachvollziehen",
+            "description": "Vom Frischwassertank über Pumpe und Leitungen zu Hähnen/Dusche bis in den Abwassertank – gedanklich und praktisch einmal durchgehen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Gasanlage – nur Sichtprüfung",
+            "description": "Flasche(n), Druckminderer, Schläuche und Absperrventile lokalisieren. Nur ansehen, nichts selbst lösen oder umbauen.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Zusätzliche Dokumente (Platzhalter)",
+            "description": "Hier können später herstellerspezifische PDFs oder Video-Anleitungen verlinkt werden.",
+            "actionType": "link",
+            "link": {
+              "label": "Platzhalter: Systemübersicht als PDF",
+              "href": "#"
+            }
+          }
+        ]
+      },
+      {
+        "title": "Sicherheit & Notfall-Grundlagen",
+        "slug": "sicherheit-grundlagen",
+        "intro": "Basiswissen, das jeder Nutzer kennen sollte – bevor etwas passiert.",
+        "steps": [
+          {
+            "title": "Fluchtwege & Notausstiege kennen",
+            "description": "Wo befinden sich Notausstiege (Fenster, Dachluken, Türen)? Wie werden sie im Ernstfall geöffnet?",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Feuerlöscher & Branddecke",
+            "description": "Position des Feuerlöschers und der Branddecke merken, Prüfdatum kontrollieren.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Erste-Hilfe-Ausstattung",
+            "description": "Verbandskasten und ggf. spezielle Medikamente/Utensilien für Mitreisende bereitlegen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Notfallkontakte speichern",
+            "description": "Wichtige Rufnummern (Truckshop, Pannendienst, Versicherung) im Handy und in Papierform notieren.",
+            "actionType": "contact",
+            "contact": {
+              "phone": "(04131) 242526",
+              "email": "info@truckshop.de",
+              "subject": "Notfallkontakt hinterlegen",
+              "presetMessage": "Ich möchte Truckshop als festen Notfallkontakt hinterlegen und habe folgende Fragen:\n\n- Fahrzeug/Modell:\n- Einsatzgebiet:\n- Rückrufnummer:"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "category": "Wartung & Pflege",
+    "slug": "wartung-pflege",
+    "subtitle": "Was regelmäßig getan werden sollte",
+    "cta": "Wartung starten",
+    "topics": [
+      {
+        "title": "Regelmäßige Wartungsarbeiten",
+        "slug": "regelmaessige-wartung",
+        "intro": "Diese Checks erhöhen Sicherheit und Lebensdauer Ihres Wohnaufliegers.",
+        "steps": [
+          {
+            "title": "Bremsanlage jährlich prüfen lassen",
+            "description": "Mindestens einmal pro Jahr oder bei Auffälligkeiten (Ziehen, Rubbeln, Geräusche) im Fachbetrieb prüfen lassen.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Reifen & Luftdruck im Blick behalten",
+            "description": "Profil, Alter (DOT) und Beschädigungen kontrollieren. Luftdruck nach Herstellerangabe einstellen – inklusive Reserverad.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Rahmen & Unterboden",
+            "description": "Unterboden, Rahmen und tragende Teile auf Rost, Risse und Beschädigungen prüfen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Batteriepflege einplanen",
+            "description": "Pole reinigen, festen Sitz prüfen und bei längeren Standzeiten regelmäßig nachladen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Service-Termin anfragen",
+            "description": "Für einen Rundum-Check empfiehlt sich ein terminierter Werkstattaufenthalt.",
+            "actionType": "contact",
+            "contact": {
+              "phone": "(04131) 242526",
+              "email": "service@truckshop.de",
+              "subject": "Rundum-Service Wohnauflieger",
+              "presetMessage": "Ich möchte einen Rundum-Service für meinen Wohnauflieger.\nFahrzeug/Modell:\nBaujahr:\nbesondere Auffälligkeiten:\nWunschtermin(e):"
+            }
+          }
+        ]
+      },
+      {
+        "title": "Slideouts – Nutzung & Pflege",
+        "slug": "slideouts",
+        "intro": "So bleiben die ausfahrbaren Elemente dicht und leichtgängig.",
+        "steps": [
+          {
+            "title": "Vor dem Ausfahren Platz prüfen",
+            "description": "Trailer muss eben stehen, Hindernisse (Mauern, Bäume, andere Fahrzeuge) ausreichenden Abstand haben.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Slideouts einzeln bewegen",
+            "description": "Jeden Slideout nacheinander aus- und einfahren. Bei kratzenden Geräuschen, Schiefstand oder Rucken Vorgang abbrechen.",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "Dichtungen reinigen & pflegen",
+            "description": "Gummidichtungen regelmäßig reinigen und mit geeignetem Pflegemittel behandeln, um Risse zu vermeiden.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Vor der Fahrt immer einfahren",
+            "description": "Vor jeder Fahrt prüfen, ob alle Slideouts vollständig eingefahren und verriegelt sind.",
+            "actionType": "checklist",
+            "isCritical": true
+          }
+        ]
+      },
+      {
+        "title": "Innenraum & Oberflächen",
+        "slug": "innenraum-pflege",
+        "intro": "Sauberkeit ist nicht nur Optik – sie hilft auch, Schäden früh zu erkennen.",
+        "steps": [
+          {
+            "title": "Regelmäßige Grundreinigung",
+            "description": "Staub und Schmutz entfernen, Polster absaugen, Feuchtbereiche gründlich trocknen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Feuchtigkeit & Schimmel vermeiden",
+            "description": "Nach Duschen und Kochen lüften. Kondenswasser an Fenstern regelmäßig abwischen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Möbel & Beschläge prüfen",
+            "description": "Scharniere, Schlösser und Verriegelungen auf festen Sitz und leichtgängige Funktion prüfen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Innenraum-Checkliste (Platzhalter)",
+            "description": "Hier kann später eine PDF-Checkliste für Reinigung & Kontrolle verlinkt werden.",
+            "actionType": "link",
+            "link": {
+              "label": "Innenraum-Checkliste öffnen",
+              "href": "#"
+            }
+          }
+        ]
+      },
+      {
+        "title": "Frühjahrs- & Wintercheck (Detail)",
+        "slug": "fruehjahrs-wintercheck",
+        "intro": "Saisonwechsel sind perfekte Zeitpunkte für eine gründliche Durchsicht.",
+        "steps": [
+          {
+            "title": "Frühjahrscheck außen",
+            "description": "Unterboden, Rahmen, Dach, Dichtungen, Fenster und Türen nach der Standzeit prüfen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Frühjahrscheck innen",
+            "description": "Wasseranlage füllen und spülen, Elektrik testen, Heizung und ggf. Klimaanlage probelaufen lassen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Winterfest machen (Detail)",
+            "description": "Wassersystem entleeren, Frostschutz in Siphons geben, Batterie pflegen, Innenraum trocken und leicht belüftet lassen.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Fragen zum Saisoncheck",
+            "description": "Wenn Sie unsicher sind, ob Ihr Trailer korrekt eingewintert ist, melden Sie sich beim Service.",
+            "actionType": "contact",
+            "contact": {
+              "email": "service@truckshop.de",
+              "subject": "Fragen zum Saisoncheck",
+              "presetMessage": "Ich habe Fragen zum Saisoncheck meines Wohnaufliegers.\nFahrzeug/Modell:\nWinter-/Sommerbetrieb:\nKonkrete Fragen:"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "category": "Problem-Lösung & Reparaturen",
+    "slug": "problem-loesung-reparaturen",
+    "subtitle": "Diagnose wie ein Servicetechniker",
+    "cta": "Diagnose starten",
+    "topics": [
+      {
+        "title": "Strom & Elektrik – ausführliche Diagnose",
+        "slug": "strom-elektrik",
+        "intro": "Wir gehen von außen nach innen: einfache Schritte, die auch ohne Fachwissen machbar sind.",
+        "steps": [
+          {
+            "title": "1. Sichtprüfung außen",
+            "description": "Landstromkabel prüfen: Knicke, gequetschte Stellen oder Beschädigungen? Steckt der Stecker ganz in der Dose (am Platz und am Trailer)?",
+            "actionType": "diagnosis",
+            "isCritical": true
+          },
+          {
+            "title": "2. Andere Steckdose testen",
+            "description": "Wenn möglich, an einer anderen Steckdose (z. B. andere Säule, andere Parzelle oder Hausanschluss) testen. So schließen Sie einen Fehler am Stellplatz aus.",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "3. FI-Schutzschalter prüfen",
+            "description": "Im Trailer FI-Schalter suchen, Hebel auf EIN, Test-Taste drücken. Bleibt der FI unten, ohne Verbraucher, liegt meist ein Fehler im System vor.",
+            "actionType": "diagnosis",
+            "isCritical": true
+          },
+          {
+            "title": "4. 12V-Batteriespannung grob einschätzen",
+            "description": "Wenn ein Voltmeter vorhanden ist: direkt an der Batterie messen. 12,4–12,7 V sind normal; unter 12,0 V ist die Batterie fast leer.",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "5. Hauptsicherung an der Batterie",
+            "description": "Große Sicherung (z. B. 50–80 A) in Batterienähe suchen. Gibt es Brandspuren oder wirkt der Sicherungskörper unterbrochen?",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "6. Innenraum-Sicherungen einzeln kontrollieren",
+            "description": "Sicherungskasten öffnen, jede Sicherung nacheinander prüfen. Defekte Sicherungen nur durch Sicherungen mit gleichem Wert ersetzen – nie höher absichern.",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "7. Verbraucher einzeln testen",
+            "description": "Alle Verbraucher ausschalten. Dann nach und nach einschalten (Licht, Pumpe, Lüfter, Steckdosen). Fällt eine Sicherung bei einem Gerät, ist dieses verdächtig.",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "8. Ergebnis notieren & Service kontaktieren",
+            "description": "Notieren Sie, was Sie bereits geprüft haben. Das spart Zeit bei der telefonischen Diagnose oder im Servicebetrieb.",
+            "actionType": "contact",
+            "contact": {
+              "phone": "(04131) 242526",
+              "email": "service@truckshop.de",
+              "subject": "Elektrikproblem – Diagnose durchgeführt",
+              "presetMessage": "Folgendes habe ich bereits geprüft:\n1) Landstrom/Kabel:\n2) Steckdose/FI:\n3) Batterie/Sicherungen:\n4) Verbraucher:\nBitte um Rückmeldung / Termin."
+            }
+          }
+        ]
+      },
+      {
+        "title": "Wasser & Sanitär – Fehlersuche",
+        "slug": "wasser-sanitaer",
+        "intro": "Von „kein Wasser aus dem Hahn“ bis „Pfütze im Stauraum“ – strukturiert prüfen.",
+        "steps": [
+          {
+            "title": "1. Füllstand & Pumpenschalter",
+            "description": "Ist genug Wasser im Frischwassertank? Ist der Pumpenschalter eingeschaltet? Hören Sie ein Summen der Pumpe beim Öffnen eines Hahns?",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "2. Alle Hähne nacheinander testen",
+            "description": "Küche, Bad und Dusche einzeln testen. Wenn bei keinem Wasser kommt, liegt das Problem meist vor der Verteilung (Tank, Pumpe, Hauptleitung).",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "3. Pumpe läuft dauerhaft",
+            "description": "Läuft die Pumpe weiter, obwohl alle Hähne zu sind? Typisch für ein Leck oder einen nicht richtig geschlossenen Hahn.",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "4. Sichtprüfung auf Leckagen",
+            "description": "Stauräume, Bereiche unter Spülen und hinter Klappen auf Feuchtigkeit oder Pfützen prüfen. Nasse Stellen und Tropfstellen fotografieren.",
+            "actionType": "diagnosis",
+            "isCritical": true
+          },
+          {
+            "title": "5. Toilette & Kassette überprüfen",
+            "description": "Ist die Kassette richtig eingesetzt und verriegelt? Funktioniert die Spülung? Dichtungen auf Risse und Verschmutzung prüfen.",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "6. Gerüche aus Abflüssen",
+            "description": "Abwassertank leeren, danach mit klarem Wasser nachspülen. Siphons (Geruchsfallen) wieder mit Wasser füllen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "7. Frostschäden ausschließen",
+            "description": "Nach Winterbetrieb prüfen, ob Leitungen oder Armaturen Risse zeigen. Wenn im Winter nicht entleert wurde, sind Frostschäden wahrscheinlich.",
+            "actionType": "diagnosis",
+            "isCritical": true
+          },
+          {
+            "title": "8. Service kontaktieren",
+            "description": "Mit Fotos und einer kurzen Fehlerbeschreibung kann der Service die Ursache meist schneller eingrenzen.",
+            "actionType": "contact",
+            "contact": {
+              "phone": "(04131) 242526",
+              "email": "service@truckshop.de",
+              "subject": "Wasser-/Sanitärproblem – Diagnose durchgeführt",
+              "presetMessage": "Folgendes habe ich bereits geprüft:\n- Tank/Pumpe:\n- Hähne:\n- Leckstellen:\n- Toilette/Kassette:\nBitte um Rückmeldung / Termin."
+            }
+          }
+        ]
+      },
+      {
+        "title": "Gas & Heizung – sicher bleiben",
+        "slug": "gas-heizung",
+        "intro": "An Gas selbst wird nicht gearbeitet – aber diese Checks helfen bei der Einschätzung.",
+        "steps": [
+          {
+            "title": "1. Gasgeruch = sofort Sicherheitsmodus",
+            "description": "Riechst du Gas: Fenster/Türen öffnen, Gasflasche schließen, keine Schalter/Flammen, Trailer verlassen.",
+            "actionType": "diagnosis",
+            "isCritical": true
+          },
+          {
+            "title": "2. Gasflasche & Druckminderer nur anschauen",
+            "description": "Ist die Flasche geöffnet? Ist der Druckminderer korrekt montiert? Schläuche ohne Knicke oder sichtbare Risse?",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "3. Heizung startet nicht",
+            "description": "Ist 12V-Spannung vorhanden (Batterie nicht leer)? Zeigt das Bedienpanel einen Fehlercode? Luftzufuhr und Abgasgitter nicht blockiert?",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "4. Heizung geht nach kurzer Zeit aus",
+            "description": "Typische Ursachen: zu wenig Luft, Abgasweg teilweise blockiert oder Spannungseinbruch. Gitter reinigen und für gute Belüftung sorgen.",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "5. Keine Eigenreparaturen an Gas",
+            "description": "Nicht an Gasleitungen, Düsen oder Reglern schrauben. Auch vermeintliche \"Kleinigkeiten\" gehören in den Fachbetrieb.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "6. Gasprüfung & Heizung-Service buchen",
+            "description": "Regelmäßige Gasprüfung und Heizungswartung im Fachbetrieb durchführen lassen.",
+            "actionType": "contact",
+            "contact": {
+              "phone": "(04131) 242526",
+              "email": "service@truckshop.de",
+              "subject": "Gas/Heizung – Problem & Gasprüfung",
+              "presetMessage": "Problem mit Gas/Heizung:\n- Gerät (Heizung/Boiler/Herd):\n- Symptom:\n- Gasgeruch ja/nein:\nBitte um Termin / Rückruf."
+            }
+          }
+        ]
+      },
+      {
+        "title": "Türen, Fenster & Klappen",
+        "slug": "tueren-fenster-klappen",
+        "intro": "Wenn etwas nicht mehr richtig schließt, wird es schnell undicht oder unsicher.",
+        "steps": [
+          {
+            "title": "Schließt die Tür richtig?",
+            "description": "Prüfen, ob die Tür ohne Gewalt schließt, Dichtung sauber anliegt und das Schloss sauber verriegelt.",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "Fensterfunktion testen",
+            "description": "Alle Fenster einmal öffnen und schließen. Klemmt ein Fenster, nicht mit Gewalt weiterdrücken.",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "Außenklappen kontrollieren",
+            "description": "Stauraumklappen und Serviceklappen auf Dichtheit und Verriegelung prüfen. Griffe und Scharniere auf festen Sitz kontrollieren.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Servicekontakt bei Schäden",
+            "description": "Wenn ein Fenster, eine Tür oder Klappe beschädigt ist, mit Foto beim Service melden.",
+            "actionType": "contact",
+            "contact": {
+              "email": "service@truckshop.de",
+              "subject": "Defekte Tür/Fenster/Klappe",
+              "presetMessage": "Bei meinem Wohnauflieger ist eine Tür/ein Fenster/eine Klappe beschädigt.\nFahrzeug/Modell:\nPosition (z. B. rechte Seite, vorne):\nKurzbeschreibung:\nFotos im Anhang:"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "category": "Reise & Unterwegs",
+    "slug": "reise-unterwegs",
+    "subtitle": "Checklisten für Abfahrt & unterwegs",
+    "cta": "Unterwegs-Check",
+    "topics": [
+      {
+        "title": "Abfahrtscheck vor jeder Fahrt",
+        "slug": "abfahrtscheck",
+        "intro": "Kurze, aber wichtige Kontrolle vor jeder Fahrt mit Wohnauflieger.",
+        "steps": [
+          {
+            "title": "Kupplung & Sicherungsseil prüfen",
+            "description": "Kupplung verriegelt? Sicherungsseil korrekt am Fahrzeugrahmen befestigt (nicht am Kugelkopf)?",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Reifen, Radmuttern & Luftdruck",
+            "description": "Rundgang machen: sichtbare Schäden, Fremdkörper, Radmuttern fest, Luftdruck plausibel.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Licht & Blinker testen",
+            "description": "Blinker, Bremslicht, Schlusslicht, Warnblinker und Kennzeichenbeleuchtung testen.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Ladung & Stützen sichern",
+            "description": "Lose Gegenstände sichern, Stützen eingefahren, Türen/Klappen verriegelt, Markisen eingefahren.",
+            "actionType": "checklist"
+          }
+        ]
+      },
+      {
+        "title": "Aufbau am Stellplatz",
+        "slug": "aufbau-stellplatz",
+        "intro": "Von der Ankunft bis zum ersten Kaffee vor dem Trailer.",
+        "steps": [
+          {
+            "title": "Stellplatz auswählen & prüfen",
+            "description": "Untergrund, Neigung, Hindernisse und Drainage beachten. Möglichst ebene Fläche wählen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Trailer ausrichten & sichern",
+            "description": "Unterlegkeile nutzen, Stützen ausfahren, mit Wasserwaage prüfen, ob der Trailer gerade steht.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Strom & Wasser anschließen",
+            "description": "CEE-Kabel einstecken, FI testen; Frischwasser füllen, Abwasser korrekt anschließen oder auffangen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Innenraum in Betrieb nehmen",
+            "description": "Heizung/Klima einschalten, erste Geräte testen, Schränke öffnen und Verriegelungen kontrollieren.",
+            "actionType": "checklist"
+          }
+        ]
+      },
+      {
+        "title": "Wer kann was ziehen?",
+        "slug": "wer-kann-was-ziehen",
+        "intro": "Grundlagen zur Auswahl des passenden Zugfahrzeugs.",
+        "steps": [
+          {
+            "title": "Anhängelast in Papieren prüfen",
+            "description": "Gebremste Anhängelast und Sattellast Ihres Zugfahrzeugs abgleichen – diese Werte dürfen nicht überschritten werden.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Leer- & Gesamtgewicht vergleichen",
+            "description": "Leergewicht und zulässiges Gesamtgewicht des Wohnaufliegers müssen zur Anhängelast passen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Beladung berücksichtigen",
+            "description": "Die tatsächliche Beladung (Wasser, Gepäck, Zubehör) mit einplanen – nicht nur das Leergewicht.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Unsicher? Service fragen",
+            "description": "Lassen Sie sich die Kombination einmal durchrechnen und schriftlich bestätigen.",
+            "actionType": "contact",
+            "contact": {
+              "email": "info@truckshop.de",
+              "subject": "Frage: Zugfahrzeug & Wohnauflieger",
+              "presetMessage": "Ich möchte prüfen lassen, ob mein Zugfahrzeug den Wohnauflieger sicher ziehen darf.\nZugfahrzeug:\nTrailer:\nGeplante Beladung:\nFragen:"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "category": "Saisonales",
+    "slug": "saisonales",
+    "subtitle": "Frühling, Sommer, Herbst & Winter",
+    "cta": "Saison-Check",
+    "topics": [
+      {
+        "title": "Frühjahrs-Inbetriebnahme (Kurzcheck)",
+        "slug": "fruehjahrscheck",
+        "intro": "Kurzfassung für den Start in die Saison – die Details stehen unter Wartung & Pflege.",
+        "steps": [
+          {
+            "title": "Rundgang außen & Unterboden",
+            "description": "Rahmen, Unterboden, Reifen, Aufbauten und Dichtungen auf Auffälligkeiten prüfen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Wasser & Strom testen",
+            "description": "Wassersystem spülen, Pumpen/Hähne prüfen; Elektrik mit und ohne Landstrom testen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Innenraum kontrollieren",
+            "description": "Auf Feuchtigkeit, Gerüche, Schimmelansätze achten und Lüften.",
+            "actionType": "checklist"
+          }
+        ]
+      },
+      {
+        "title": "Sommer-Check",
+        "slug": "sommer-check",
+        "intro": "Hitze, UV-Strahlung und Gewitter – so bleibt alles funktionsfähig.",
+        "steps": [
+          {
+            "title": "Belüftung & Kühlung prüfen",
+            "description": "Lüfter und ggf. Klimagerät testen, Lüftungsgitter und -öffnungen reinigen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Markise/Wind im Blick behalten",
+            "description": "Bei Starkwind Markise einfahren oder sturmfest abspannen, Sturmbänder nutzen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Reifen & Hitze",
+            "description": "Reifendruck regelmäßig kontrollieren, insbesondere bei hohen Temperaturen und langen Fahrten.",
+            "actionType": "checklist"
+          }
+        ]
+      },
+      {
+        "title": "Herbst- & Wintervorbereitung",
+        "slug": "herbst-winter",
+        "intro": "Nässe, Laub und Frost – kurz und knapp, was zu tun ist.",
+        "steps": [
+          {
+            "title": "Dichtungen & Abläufe reinigen",
+            "description": "Blätter, Schmutz und Wasser aus Rinnen und Abläufen entfernen, Dichtungen pflegen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Wasseranlage vorbereiten",
+            "description": "Vor Frost: Wassersystem entleeren, Frostschutz in Siphons geben, Tanks leer fahren.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Winter-Checkliste (Detail)",
+            "description": "Ausführliche Schritte siehe Wartung & Pflege, Thema „Frühjahrs- & Wintercheck (Detail)“.",
+            "actionType": "link",
+            "link": {
+              "label": "Zu Wartung & Pflege wechseln",
+              "href": "#"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "category": "Service & Kontakt",
+    "slug": "service-kontakt",
+    "subtitle": "Service buchen, Garantie & Notfall",
+    "cta": "Kontakt öffnen",
+    "topics": [
+      {
+        "title": "Service-Termin anfragen",
+        "slug": "service-termin",
+        "intro": "Für Wartung, Reparaturen oder Umbauten.",
+        "steps": [
+          {
+            "title": "Infos bereithalten",
+            "description": "Fahrzeug/Modell, Baujahr, bekannte Umbauten und Fehlerbild notieren.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Kontakt aufnehmen",
+            "description": "Terminanfrage per Telefon oder E-Mail senden.",
+            "actionType": "contact",
+            "contact": {
+              "phone": "(04131) 242526",
+              "email": "service@truckshop.de",
+              "subject": "Service-Termin Wohnauflieger",
+              "presetMessage": "Ich möchte einen Service-Termin für meinen Wohnauflieger.\nFahrzeug/Modell:\nBaujahr:\nAnliegen:\nWunschtermin(e):"
+            }
+          }
+        ]
+      },
+      {
+        "title": "Garantie & Dokumente",
+        "slug": "garantie-dokumente",
+        "intro": "Gut vorbereitete Unterlagen machen vieles leichter.",
+        "steps": [
+          {
+            "title": "Kauf- & Fahrzeugunterlagen sammeln",
+            "description": "Kaufvertrag, Rechnung, Fahrgestellnummer, Zulassung, Prüfnachweise und Fotos bereitlegen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Schäden dokumentieren",
+            "description": "Fotos/Videos aus mehreren Winkeln aufnehmen und kurz notieren, seit wann das Problem besteht.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Unterlagen einsenden",
+            "description": "Per Mail an den Service schicken, damit eine Vorprüfung stattfinden kann.",
+            "actionType": "contact",
+            "contact": {
+              "email": "service@truckshop.de",
+              "subject": "Garantie-/Schadensfall Wohnauflieger",
+              "presetMessage": "Ich melde einen möglichen Garantie-/Schadensfall.\nFahrzeug/Modell:\nBaujahr:\nSchadenbeschreibung:\nFotos im Anhang."
+            }
+          }
+        ]
+      },
+      {
+        "title": "Notfall-Kontakt & Pannenhilfe",
+        "slug": "notfall-kontakt",
+        "intro": "Was im Pannen- oder Notfall zu tun ist.",
+        "steps": [
+          {
+            "title": "Stelle sichern",
+            "description": "Warnblinker einschalten, Warnwesten anziehen, Warndreieck aufstellen. Personen in Sicherheit bringen.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Lage einschätzen",
+            "description": "Sind Personen verletzt? Gibt es Gefahren durch Feuer, Gas oder Verkehr? Ggf. Notruf wählen.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Truckshop kontaktieren",
+            "description": "Im Gespräch kurz schildern, was passiert ist und wo Sie stehen.",
+            "actionType": "contact",
+            "contact": {
+              "phone": "(04131) 242526",
+              "email": "info@truckshop.de",
+              "subject": "NOTFALL – Wohnauflieger",
+              "presetMessage": "Kurzbeschreibung des Notfalls:\nStandort:\nKontaktdaten:\nFotos vorhanden (ja/nein):"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "category": "Schnelle Hilfe",
+    "slug": "schnelle-hilfe",
+    "subtitle": "Notfall-Kontakt & Kurz-Diagnosen",
+    "cta": "Soforthilfe",
+    "topics": [
+      {
+        "title": "Gasgeruch – sofort richtig handeln",
+        "slug": "gasgeruch-notfall",
+        "intro": "Bei Gasgeruch steht Sicherheit an erster Stelle.",
+        "steps": [
+          {
+            "title": "Gaszufuhr schließen",
+            "description": "Gasflasche(n) sofort zudrehen.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Lüften & Trailer verlassen",
+            "description": "Alle Türen/Fenster öffnen, keine Schalter/Flammen, alle Personen nach draußen.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Service / Notdienst anrufen",
+            "description": "Fehler nicht selbst suchen – telefonisch schildern, was passiert ist.",
+            "actionType": "contact",
+            "contact": {
+              "phone": "(04131) 242526",
+              "email": "service@truckshop.de",
+              "subject": "Gasgeruch – Notfall",
+              "presetMessage": "Gasgeruch im Trailer.\nOrt/Standplatz:\nWann bemerkt:\nBesondere Auffälligkeiten:\nRückrufnummer:"
+            }
+          }
+        ]
+      },
+      {
+        "title": "Kein Strom – Kurzcheck",
+        "slug": "kein-strom-kurz",
+        "intro": "Die 3-Minuten-Variante, wenn schnell klar sein soll, ob es „nur“ an der Versorgung liegt.",
+        "steps": [
+          {
+            "title": "Kabel & Steckdose",
+            "description": "Steckt das Landstromkabel auf beiden Seiten fest? Andere Steckdose ausprobieren.",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "FI & Sicherungen",
+            "description": "FI-Schalter ein, Test-Taste drücken. 12V- und 230V-Sicherungen grob kontrollieren.",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "Batteriezustand",
+            "description": "Wenn nichts mehr geht: oft ist die Batterie leer oder tiefentladen.",
+            "actionType": "diagnosis"
+          }
+        ]
+      },
+      {
+        "title": "Wasserleck – Schaden begrenzen",
+        "slug": "wasserleck-notfall",
+        "intro": "Wichtig ist, dass Wasser nicht unbemerkt weiterlaufen kann.",
+        "steps": [
+          {
+            "title": "Pumpe & Wasserzufuhr stoppen",
+            "description": "Pumpe ausschalten, ggf. Hauptabsperrhahn schließen.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Leck grob lokalisieren",
+            "description": "Wo ist es nass? Nur schauen, nichts zerlegen. Fotos machen.",
+            "actionType": "diagnosis"
+          },
+          {
+            "title": "Service informieren",
+            "description": "Mit Kurzbeschreibung und Fotos ist eine schnelle Einschätzung möglich.",
+            "actionType": "contact",
+            "contact": {
+              "email": "service@truckshop.de",
+              "subject": "Wasserleck – Soforthilfe",
+              "presetMessage": "Wasserleck im Trailer.\nOrt (z. B. unter Spüle / in Stauraum):\nSeit wann:\nFotos im Anhang:\nRückrufnummer:"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "category": "FAQ & Beispiele",
+    "slug": "faq-beispiele",
+    "subtitle": "Häufige Fragen & typische Szenarien",
+    "cta": "Beispiele ansehen",
+    "topics": [
+      {
+        "title": "Typische Anfängerfehler vermeiden",
+        "slug": "anfaengerfehler",
+        "intro": "Ein paar Klassiker, die man mit einem Blick vermeiden kann.",
+        "steps": [
+          {
+            "title": "Mit ausgefahrenen Stützen losfahren",
+            "description": "Klingt banal, passiert aber: Vor der Abfahrt alle Stützen einfahren und Sichtkontrolle machen.",
+            "actionType": "checklist",
+            "isCritical": true
+          },
+          {
+            "title": "Beladung nur nach Gefühl",
+            "description": "Stützlast, Achslasten und Gesamtgewicht kennen – nicht „Pi mal Daumen“ beladen.",
+            "actionType": "checklist"
+          },
+          {
+            "title": "Bedienungsanleitung ignorieren",
+            "description": "Herstellerangaben zu Wartung, Belastung und Nutzung ernst nehmen – sonst drohen Schäden und Ärger.",
+            "actionType": "checklist"
+          }
+        ]
+      },
+      {
+        "title": "Typische Supportfälle (Beispiele)",
+        "slug": "supportfaelle",
+        "intro": "Einige typische Meldungen, die im Alltag vorkommen – als Orientierung für Nutzer.",
+        "steps": [
+          {
+            "title": "„Licht flackert bei Landstrombetrieb“",
+            "description": "Oft ein Hinweis auf Spannungsprobleme oder schlechte Kontakte – siehe Stromdiagnose.",
+            "actionType": "link",
+            "link": {
+              "label": "Zur Strom-Diagnose springen",
+              "href": "#"
+            }
+          },
+          {
+            "title": "„Pfütze im Stauraum nach Regen“",
+            "description": "Häufig Dichtung oder Fenster undicht – Fotos machen, Dichtungen prüfen und Service kontaktieren.",
+            "actionType": "contact",
+            "contact": {
+              "email": "service@truckshop.de",
+              "subject": "Undichtigkeit / Wasser im Stauraum",
+              "presetMessage": "Ich habe Wasser im Stauraum/Nassbereich festgestellt.\nFahrzeug/Modell:\nStelle:\nSeit wann:\nFotos im Anhang:"
+            }
+          },
+          {
+            "title": "„Heizung läuft, aber wird nicht richtig warm“",
+            "description": "Kann an Luftzufuhr, verstopften Gittern oder falschen Einstellungen liegen – erst einfache Schritte prüfen, dann Service fragen.",
+            "actionType": "link",
+            "link": {
+              "label": "Gas & Heizung – Diagnose öffnen",
+              "href": "#"
+            }
+          }
+        ]
+      }
+    ]
+  }
+]
