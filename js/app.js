@@ -1,5 +1,6 @@
 // ==============================================
-// Truck Center Hilfe – App-Logik
+// Truck Center Hilfe – App-Logik (Sheet-only)
+// Lädt ALLE Inhalte aus EINEM Google Sheet (CSV)
 // ==============================================
 
 let data = [];
@@ -13,14 +14,15 @@ const searchResultsEl = document.getElementById("searchResults");
 const STORAGE_KEY = "truckcenter-hilfe-steps-done";
 let doneState = {};
 
-// 👉 Google Sheet CSV-URL für zusätzliche Inhalte
+// 👉 DIESE URL ist die einzige Datenquelle
+// CSV-Export für dein Sheet (Tab 1 / gid=0)
 const SHEET_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCXjTKGowsZ4NrxhRqueZyKaDA5ny-lSAuxNaxhCOmlk_SAmI9WBGCRnY-yeOzKOvNl_DuD4T49EMK/pub?output=csv";
+  "https://docs.google.com/spreadsheets/d/17Uc_pfVj4d2oPv45HwTaWTeYVHt2dzLaSpk5kziJy1w/export?format=csv&id=17Uc_pfVj4d2oPv45HwTaWTeYVHt2dzLaSpk5kziJy1w&gid=0";
 
-// 👉 Maximalzahl der Schritt-Spalten im Sheet (schritt1 … schritt20)
+// Max. Anzahl Schrittspalten im Sheet
 const MAX_SHEET_STEPS = 20;
 
-// Icons pro Kategorie
+// Icons pro Kategorie-Slug
 const categoryIconMap = {
   "handbuch-einfuehrung": "📘",
   "wartung-pflege": "🔧",
@@ -28,7 +30,8 @@ const categoryIconMap = {
   "reise-unterwegs": "🚐",
   "saisonales": "🌦️",
   "service-kontakt": "📞",
-  "schnelle-hilfe": "⚡"
+  "schnelle-hilfe": "⚡",
+  "faq-beispiele": "❓"
 };
 
 // ----------------------------------------------
@@ -36,37 +39,38 @@ const categoryIconMap = {
 // ----------------------------------------------
 document.addEventListener("DOMContentLoaded", function () {
   loadDoneState();
-  loadData();
+  loadDataFromSheet();
 });
 
-// ----------------------------------------------
-// Daten laden: Basis-JSON + zusätzliche Inhalte aus dem Sheet
-// ----------------------------------------------
-function loadData() {
-  fetch("data/hilfecenter.json", { cache: "no-cache" })
+// ==============================================
+// DATEN AUS DEM SHEET LADEN & STRUKTUR AUFBAUEN
+// ==============================================
+function loadDataFromSheet() {
+  if (!SHEET_CSV_URL) {
+    appEl.innerHTML =
+      "<p>Es ist keine Datenquelle (SHEET_CSV_URL) konfiguriert.</p>";
+    return;
+  }
+
+  fetch(SHEET_CSV_URL, { cache: "no-cache" })
     .then(function (res) {
       if (!res.ok) {
-        throw new Error("Fehler beim Laden der Basis-Daten");
+        throw new Error("Fehler beim Laden der CSV-Daten aus dem Sheet");
       }
-      return res.json();
+      return res.text();
     })
-    .then(function (json) {
-      data = json || [];
+    .then(function (csvText) {
+      const rows = parseCsv(csvText);
+      if (!rows || rows.length < 2) {
+        throw new Error("Sheet enthält keine Daten");
+      }
 
-      // Danach versuchen wir, zusätzliche Inhalte aus dem Sheet zu laden
-      return loadAdditionalContentFromSheet().catch(function (err) {
-        console.error(
-          "Zusätzliche Inhalte aus dem Sheet konnten nicht geladen werden:",
-          err
-        );
-        return [];
+      const header = rows[0].map(function (h) {
+        return (h || "").trim().toLowerCase();
       });
-    })
-    .then(function (sheetItems) {
-      if (sheetItems && sheetItems.length) {
-        mergeSheetItemsIntoData(sheetItems);
-      }
+      const dataRows = rows.slice(1);
 
+      data = buildDataStructureFromRows(header, dataRows);
       renderCategories();
       setupSearch();
     })
@@ -77,152 +81,129 @@ function loadData() {
     });
 }
 
-// ----------------------------------------------
-// Zusätzliche Inhalte aus dem Google Sheet laden
-// Erwartete Spaltennamen (Zeile 1):
-// kategorie | titel | inhalt | schritt1…schritt20 | reihenfolge | aktiv | highlight
-// ----------------------------------------------
-async function loadAdditionalContentFromSheet() {
-  if (!SHEET_CSV_URL) {
-    return [];
+// Baut aus flacher Sheet-Struktur ein categories -> topics -> steps Objekt
+function buildDataStructureFromRows(header, dataRows) {
+  const idx = name => header.indexOf(name);
+
+  const idxKategorie = idx("kategorie");
+  const idxTitel = idx("titel");
+  const idxIntro = idx("intro");
+  const idxInhalt = idx("inhalt");
+  const idxReihenfolge = idx("reihenfolge");
+  const idxAktiv = idx("aktiv");
+  const idxHighlight = idx("highlight");
+
+  // Schritt-Spalten finden: schritt1 … schrittN
+  const stepIndices = [];
+  for (let i = 1; i <= MAX_SHEET_STEPS; i++) {
+    const name = "schritt" + i;
+    const pos = idx(name);
+    if (pos !== -1) {
+      stepIndices.push({ colIndex: pos, stepNumber: i });
+    }
   }
 
-  const res = await fetch(SHEET_CSV_URL, { cache: "no-cache" });
-  if (!res.ok) {
-    throw new Error("Fehler beim Laden der CSV-Daten aus dem Google Sheet");
-  }
+  const categoriesBySlug = {};
 
-  const csvText = await res.text();
-  const rows = parseCsv(csvText);
+  dataRows.forEach(function (row) {
+    // Zeile zu Objekt
+    const getCell = function (idx) {
+      if (idx === -1) return "";
+      return (row[idx] || "").trim();
+    };
 
-  if (!rows || rows.length < 2) {
-    return [];
-  }
-
-  const header = rows[0].map(function (h) {
-    return (h || "").trim().toLowerCase();
-  });
-  const dataRows = rows.slice(1);
-
-  const items = dataRows
-    .map(function (row) {
-      const obj = {};
-      header.forEach(function (key, i) {
-        obj[key] = (row[i] || "").trim();
-      });
-      return obj;
-    })
-    // nur Zeilen mit Titel berücksichtigen
-    .filter(function (item) {
-      return item.titel;
-    });
-
-  // nur aktive oder ohne "aktiv"-Feld
-  const aktiveItems = items.filter(function (item) {
-    if (!item.aktiv) return true;
-    return item.aktiv.toLowerCase() === "ja";
-  });
-
-  return aktiveItems;
-}
-
-// ----------------------------------------------
-// Sheet-Items in vorhandene Datenstruktur einbauen
-// Jede Zeile = neues Topic mit mehreren Schritten (schritt1…schrittN)
-// Fallback: wenn keine schritt-Felder gefüllt sind, wird "inhalt" als ein Schritt verwendet
-// Zusätzliche Steuerung:
-//  - reihenfolge: Zahl zur Sortierung
-//  - highlight: "ja" → Top-Thema in der Kategorie
-// ----------------------------------------------
-function mergeSheetItemsIntoData(sheetItems) {
-  sheetItems.forEach(function (item) {
-    const rawCat = (item.kategorie || "").trim();
-    if (!rawCat) return;
-
-    // 1) Kategorie über slug versuchen
-    let category =
-      data.find(function (c) {
-        return c.slug === rawCat;
-      }) ||
-      // 2) Fallback: Kategorie über Namen finden (case-insensitive)
-      data.find(function (c) {
-        return (c.category || "").toLowerCase() === rawCat.toLowerCase();
-      });
-
-    // Wenn keine passende Kategorie existiert → ignorieren
-    if (!category) {
-      console.warn(
-        "Konnte keine passende Kategorie für Sheet-Eintrag finden:",
-        rawCat,
-        item
-      );
+    const kat = getCell(idxKategorie);
+    const titel = getCell(idxTitel);
+    if (!kat || !titel) {
+      // Ohne Kategorie oder Titel ignorieren wir die Zeile
       return;
     }
 
-    if (!Array.isArray(category.topics)) {
-      category.topics = [];
+    const aktivVal = getCell(idxAktiv);
+    if (aktivVal && aktivVal.toLowerCase() !== "ja") {
+      // Nur aktive Themen anzeigen; leere "aktiv" = auch ok
+      return;
     }
 
-    const title = item.titel || "Neues Thema";
-    const introText = item.inhalt || "";
-    const orderNum = parseInt(item.reihenfolge || "", 10);
-    const hasValidOrder = !isNaN(orderNum);
+    const introRaw =
+      getCell(idxIntro) ||
+      getCell(idxInhalt) ||
+      ""; // intro oder inhalt als Fallback
+
+    const reihenfolgeStr = getCell(idxReihenfolge);
+    const orderNum = parseInt(reihenfolgeStr, 10);
+    const hasOrder = !isNaN(orderNum);
+
+    const highlightVal = getCell(idxHighlight);
     const isHighlighted =
-      (item.highlight || "").trim().toLowerCase() === "ja";
+      (highlightVal || "").trim().toLowerCase() === "ja";
 
-    // Slug aus dem Titel bauen
-    const baseSlug = slugify(title);
-    let topicSlug = baseSlug || "neues-thema";
+    // Kategorie anlegen / wiederverwenden
+    const catSlug = slugify(kat);
+    let category = categoriesBySlug[catSlug];
+    if (!category) {
+      category = {
+        category: kat,
+        slug: catSlug,
+        subtitle: "",
+        cta: "Anzeigen",
+        topics: []
+      };
+      categoriesBySlug[catSlug] = category;
+    }
 
-    // falls Slug schon existiert → laufende Nummer anhängen
+    // Topic-Slug innerhalb der Kategorie eindeutig machen
+    const baseTopicSlug = slugify(titel) || "thema";
+    let topicSlug = baseTopicSlug;
     let counter = 2;
     while (
       category.topics.some(function (t) {
         return t.slug === topicSlug;
       })
     ) {
-      topicSlug = baseSlug + "-" + counter;
+      topicSlug = baseTopicSlug + "-" + counter;
       counter++;
     }
 
-    // Schritte aus schritt1…schrittN dynamisch bauen
+    // Schritte aus den schrittX-Spalten aufbauen
     const steps = [];
-    for (let i = 1; i <= MAX_SHEET_STEPS; i++) {
-      const fieldName = "schritt" + i;
-      const val = (item[fieldName] || "").trim();
-      if (!val) continue;
+    stepIndices.forEach(function (info) {
+      const cellValue = getCell(info.colIndex);
+      if (!cellValue) return;
 
-      steps.push({
-        title: "Schritt " + i,
-        description: val,
-        actionType: "checklist"
-      });
-    }
+      const step = parseStepCell(cellValue, info.stepNumber);
+      if (step) {
+        steps.push(step);
+      }
+    });
 
-    // Fallback: keine schritt-Felder, aber "inhalt" vorhanden → 1 Schritt
-    if (steps.length === 0 && introText) {
-      steps.push({
-        title: title,
-        description: introText,
-        actionType: "checklist"
-      });
-    }
-
-    const newTopic = {
+    const topic = {
       slug: topicSlug,
-      title: title,
-      intro: introText ? shortenText(introText, 220) : "",
-      order: hasValidOrder ? orderNum : undefined,
+      title: titel,
+      intro: introRaw,
+      order: hasOrder ? orderNum : undefined,
       highlight: isHighlighted,
       steps: steps
     };
 
-    category.topics.push(newTopic);
+    category.topics.push(topic);
+  });
 
-    // Topics innerhalb der Kategorie sortieren:
-    // 1. highlight (ja → nach oben)
-// 2. reihenfolge (klein → nach oben)
-// 3. Titel alphabetisch
+  // Kategorien in ein Array umwandeln
+  const categories = Object.keys(categoriesBySlug).map(function (key) {
+    return categoriesBySlug[key];
+  });
+
+  // Sortierung: Kategorien alphabetisch, Topics nach highlight / order / Titel
+  categories.sort(function (a, b) {
+    const aName = (a.category || "").toLowerCase();
+    const bName = (b.category || "").toLowerCase();
+    if (aName < bName) return -1;
+    if (aName > bName) return 1;
+    return 0;
+  });
+
+  categories.forEach(function (category) {
     category.topics.sort(function (a, b) {
       const aHighlight = !!a.highlight;
       const bHighlight = !!b.highlight;
@@ -243,11 +224,42 @@ function mergeSheetItemsIntoData(sheetItems) {
       return 0;
     });
   });
+
+  return categories;
 }
 
-// ----------------------------------------------
+// Zerlegt einen Schritt-Text aus dem Sheet in Titel + Beschreibung
+// Erwartetes Format im Sheet (empfohlen): "Titel – Beschreibung"
+function parseStepCell(cellValue, stepNumber) {
+  if (!cellValue) return null;
+
+  let title = "Schritt " + stepNumber;
+  let description = cellValue.trim();
+
+  // 1. Versuch: Trenner mit Gedankenstrich „ – “
+  const split1 = cellValue.split(" – ");
+  if (split1.length >= 2) {
+    title = split1[0].trim();
+    description = split1.slice(1).join(" – ").trim();
+  } else {
+    // 2. Fallback: normales " - "
+    const split2 = cellValue.split(" - ");
+    if (split2.length >= 2) {
+      title = split2[0].trim();
+      description = split2.slice(1).join(" - ").trim();
+    }
+  }
+
+  return {
+    title: title || "Schritt " + stepNumber,
+    description: description,
+    actionType: "checklist"
+  };
+}
+
+// ==============================================
 // LocalStorage für erledigte Schritte
-// ----------------------------------------------
+// ==============================================
 function loadDoneState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -263,7 +275,7 @@ function saveDoneState() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(doneState));
   } catch (e) {
-    // ignorieren, wenn z. B. Speicher voll
+    // ignorieren (z. B. Storage voll)
   }
 }
 
@@ -271,9 +283,9 @@ function stepKey(categorySlug, topicSlug, index) {
   return categorySlug + "__" + topicSlug + "__" + index;
 }
 
-// ----------------------------------------------
+// ==============================================
 // Hilfsfunktionen zum Finden von Datenobjekten
-// ----------------------------------------------
+// ==============================================
 function findCategory(slug) {
   return data.find(function (c) {
     return c.slug === slug;
@@ -287,9 +299,9 @@ function findTopic(category, topicSlug) {
   });
 }
 
-// ----------------------------------------------
+// ==============================================
 // Startansicht: Kategorien anzeigen
-// ----------------------------------------------
+// ==============================================
 function renderCategories() {
   currentCategory = null;
   currentTopic = null;
@@ -301,7 +313,8 @@ function renderCategories() {
       .map(function (cat) {
         const icon = categoryIconMap[cat.slug] || "📚";
         const subtitle =
-          cat.subtitle || (cat.topics ? cat.topics.length + " Themen" : "");
+          cat.subtitle ||
+          (cat.topics ? cat.topics.length + " Themen" : "");
         const cta = cat.cta || "Anzeigen";
 
         return (
@@ -336,16 +349,16 @@ function renderCategories() {
     document.querySelectorAll(".js-category"),
     function (el) {
       el.addEventListener("click", function () {
-        var slug = el.getAttribute("data-slug");
+        const slug = el.getAttribute("data-slug");
         openCategory(slug);
       });
     }
   );
 }
 
-// ----------------------------------------------
+// ==============================================
 // Kategorie öffnen → Topics anzeigen
-// ----------------------------------------------
+// ==============================================
 function openCategory(slug) {
   const category = findCategory(slug);
   if (!category) return;
@@ -423,9 +436,9 @@ function openCategory(slug) {
   );
 }
 
-// ----------------------------------------------
+// ==============================================
 // Topic öffnen → Steps anzeigen
-// ----------------------------------------------
+// ==============================================
 function openTopic(categorySlug, topicSlug) {
   const category = findCategory(categorySlug);
   if (!category) return;
@@ -436,7 +449,6 @@ function openTopic(categorySlug, topicSlug) {
   currentTopic = topic;
 
   const steps = topic.steps || [];
-
   const htmlParts = [];
 
   htmlParts.push(
@@ -469,7 +481,6 @@ function openTopic(categorySlug, topicSlug) {
     steps.forEach(function (step, index) {
       const key = stepKey(category.slug, topic.slug, index);
       const isDone = !!doneState[key];
-      const isCritical = !!step.isCritical;
       const actionType = step.actionType || "checklist";
 
       htmlParts.push(
@@ -492,11 +503,6 @@ function openTopic(categorySlug, topicSlug) {
       htmlParts.push(
         '<span class="badge">' + actionTypeLabel(actionType) + "</span>"
       );
-      if (isCritical) {
-        htmlParts.push(
-          '<span class="badge badge-critical">Wichtig</span>'
-        );
-      }
       htmlParts.push("</div>"); // step-badges
       htmlParts.push("</div>"); // step-header
 
@@ -512,64 +518,27 @@ function openTopic(categorySlug, topicSlug) {
       // Aktionen
       htmlParts.push('<div class="step-actions">');
 
-      // checklist / diagnosis → „erledigt“-Button
-      if (actionType === "checklist" || actionType === "diagnosis") {
-        const label = isDone
-          ? "Erledigt"
-          : "Als erledigt markieren";
-        const btnClass = isDone
-          ? "btn btn-done btn-small"
-          : "btn btn-primary btn-small";
-        htmlParts.push(
-          '<button class="' +
-            btnClass +
-            ' js-step-done" type="button" ' +
-            'data-cat="' +
-            category.slug +
-            '" data-topic="' +
-            topic.slug +
-            '" data-index="' +
-            index +
-            '">' +
-            escapeHtml(label) +
-            "</button>"
-        );
-      }
-
-      // contact → Telefon / E-Mail
-      if (actionType === "contact" && step.contact) {
-        const c = step.contact;
-        if (c.phone) {
-          htmlParts.push(
-            '<a class="btn btn-outline btn-small" href="tel:' +
-              encodeURIComponent(c.phone) +
-              '">Anrufen</a>'
-          );
-        }
-        if (c.email) {
-          const mailHref = buildMailto(
-            c.email,
-            c.subject,
-            c.presetMessage
-          );
-          htmlParts.push(
-            '<a class="btn btn-primary btn-small" href="' +
-              mailHref +
-              '">E-Mail schreiben</a>'
-          );
-        }
-      }
-
-      // link → externer oder interner Link
-      if (actionType === "link" && step.link && step.link.href) {
-        htmlParts.push(
-          '<a class="btn btn-outline btn-small" href="' +
-            escapeHtml(step.link.href) +
-            '" target="_blank" rel="noreferrer">' +
-            escapeHtml(step.link.label || "Öffnen") +
-            "</a>"
-        );
-      }
+      // Alle Schritte sind Checklisten → Erledigt-Button
+      const label = isDone
+        ? "Erledigt"
+        : "Als erledigt markieren";
+      const btnClass = isDone
+        ? "btn btn-done btn-small"
+        : "btn btn-primary btn-small";
+      htmlParts.push(
+        '<button class="' +
+          btnClass +
+          ' js-step-done" type="button" ' +
+          'data-cat="' +
+          category.slug +
+          '" data-topic="' +
+          topic.slug +
+          '" data-index="' +
+          index +
+          '">' +
+          escapeHtml(label) +
+          "</button>"
+      );
 
       htmlParts.push("</div>"); // step-actions
       htmlParts.push("</li>"); // step
@@ -587,7 +556,6 @@ function openTopic(categorySlug, topicSlug) {
     });
   }
 
-  // Event-Listener für "Erledigt"-Buttons
   Array.prototype.forEach.call(
     document.querySelectorAll(".js-step-done"),
     function (btn) {
@@ -596,9 +564,9 @@ function openTopic(categorySlug, topicSlug) {
   );
 }
 
-// ----------------------------------------------
+// ==============================================
 // Schritt als erledigt markieren / umschalten
-// ----------------------------------------------
+// ==============================================
 function onToggleStepDone(event) {
   const btn = event.currentTarget;
   const catSlug = btn.getAttribute("data-cat");
@@ -615,7 +583,6 @@ function onToggleStepDone(event) {
   }
   saveDoneState();
 
-  // Label & Farbe aktualisieren
   const nowDone = !!doneState[key];
   btn.textContent = nowDone ? "Erledigt" : "Als erledigt markieren";
   btn.className = nowDone
@@ -623,9 +590,9 @@ function onToggleStepDone(event) {
     : "btn btn-primary btn-small js-step-done";
 }
 
-// ----------------------------------------------
-// Suche einrichten
-// ----------------------------------------------
+// ==============================================
+// Suche
+// ==============================================
 function setupSearch() {
   if (!searchInputEl) return;
 
@@ -639,8 +606,6 @@ function setupSearch() {
     renderSearchResults(results);
   });
 
-  // einfache Variante: bei Blur mit kleinem Delay schließen,
-  // damit Klick auf Ergebnis noch funktioniert
   searchInputEl.addEventListener("blur", function () {
     setTimeout(hideSearchResults, 200);
   });
@@ -653,7 +618,6 @@ function searchAll(term) {
     const catName = cat.category || "";
     const topics = cat.topics || [];
 
-    // Treffer auf Kategorie-Ebene
     if (catName.toLowerCase().indexOf(term) !== -1) {
       results.push({
         type: "category",
@@ -699,7 +663,6 @@ function searchAll(term) {
     });
   });
 
-  // etwas begrenzen
   return results.slice(0, 25);
 }
 
@@ -735,7 +698,6 @@ function renderSearchResults(results) {
   const items = searchResultsEl.querySelectorAll(".js-search-result");
   Array.prototype.forEach.call(items, function (el) {
     el.addEventListener("mousedown", function (evt) {
-      // mousedown statt click, damit blur von input uns nicht zuvor kommt
       evt.preventDefault();
       const idx = parseInt(el.getAttribute("data-index"), 10);
       const item = results[idx];
@@ -760,7 +722,6 @@ function handleSearchSelection(item) {
 
   if (item.type === "topic") {
     openCategory(item.categorySlug);
-    // kleines Delay, damit DOM aufgebaut ist
     setTimeout(function () {
       openTopic(item.categorySlug, item.topicSlug);
     }, 0);
@@ -788,9 +749,9 @@ function handleSearchSelection(item) {
   }
 }
 
-// ----------------------------------------------
-// Hilfsfunktionen
-// ----------------------------------------------
+// ==============================================
+// Generelle Hilfsfunktionen
+// ==============================================
 function escapeHtml(str) {
   if (!str) return "";
   return String(str)
@@ -820,19 +781,7 @@ function actionTypeLabel(type) {
   }
 }
 
-function buildMailto(email, subject, body) {
-  var params = [];
-  if (subject) {
-    params.push("subject=" + encodeURIComponent(subject));
-  }
-  if (body) {
-    params.push("body=" + encodeURIComponent(body));
-  }
-  var paramStr = params.length ? "?" + params.join("&") : "";
-  return "mailto:" + encodeURIComponent(email) + paramStr;
-}
-
-// Slug-Funktion für Topics aus dem Sheet
+// Slug aus Text
 function slugify(str) {
   return String(str || "")
     .toLowerCase()
@@ -842,7 +791,7 @@ function slugify(str) {
     .replace(/^-+|-+$/g, "") || "item";
 }
 
-// CSV-Parser, der auch Anführungszeichen berücksichtigt
+// CSV-Parser inkl. Anführungszeichen
 function parseCsv(text) {
   const rows = [];
   let currentRow = [];
@@ -854,7 +803,6 @@ function parseCsv(text) {
     const nextChar = text[i + 1];
 
     if (char === '"' && inQuotes && nextChar === '"') {
-      // escaped "
       currentValue += '"';
       i++;
       continue;
