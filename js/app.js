@@ -1,17 +1,9 @@
 // ==========================================================
-// Truckcenter Hilfecenter – FINAL FÜR HEUTE
-// - Liest dein Google Sheet:
-//   kategorie, kategorie_reihenfolge, titel, inhalt,
-//   schritt1..schritt20, reihenfolge, aktiv, highlight
-// - Kategorien sortiert nach kategorie_reihenfolge
-// - Themen sortiert nach reihenfolge
-// - Suche + Done-Status
+// Truckcenter Hilfecenter – FINAL + Debug
 // ==========================================================
 
-// Wenn dein Hilfecenter-Tab das erste Tabellenblatt ist, passt gid=0.
-// Falls du unten im Sheet einen anderen Tab nutzt, nimm dessen gid aus der URL.
 const CSV_URL =
-  "https://docs.google.com/spreadsheets/d/17Uc_pfVj4d2oPv45HwTaWTeYVHt2dzLaSpk5kziJy1w/export?format=csv";
+  "https://docs.google.com/spreadsheets/d/17Uc_pfVj4d2oPv45HwTaWTeYVHt2dzLaSpk5kziJy1w/export?format=csv&gid=0";
 
 let data = [];
 let currentCategory = null;
@@ -22,13 +14,13 @@ const categoryListEl = document.getElementById("categoryList");
 const searchInputEl = document.getElementById("searchInput");
 const searchResultsEl = document.getElementById("searchResults");
 
-const STORAGE_KEY = "truckcenter-hilfe-steps-v6";
+const STORAGE_KEY = "truckcenter-hilfe-steps-v-debug";
 let doneState = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
 
 // ----------------------------------------------------------
-// 1. CSV parsen – mit automatischer Erkennung , oder ;
+// 1. CSV parsen – Delimiter automatisch erkennen
 // ----------------------------------------------------------
-function parseCSVRaw(text) {
+function parseCSV(text) {
   const lines = text
     .split("\n")
     .map(l => l.replace(/\r$/, ""))
@@ -36,11 +28,11 @@ function parseCSVRaw(text) {
 
   if (lines.length === 0) {
     console.warn("[Hilfecenter] Keine Zeilen im CSV");
-    return [];
+    return { rows: [], header: [], delimiter: "," };
   }
 
-  // Trennzeichen automatisch erkennen: mehr ; als , -> ;
   const firstLine = lines[0];
+
   const delimiter =
     (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length
       ? ";"
@@ -49,7 +41,7 @@ function parseCSVRaw(text) {
   const header = firstLine.split(delimiter).map(h => h.trim());
   console.log("[Hilfecenter] Header:", header, "Delimiter:", delimiter);
 
-  const rows = lines.slice(1).map((line, idx) => {
+  const rows = lines.slice(1).map(line => {
     const parts = line.split(delimiter);
     const obj = {};
 
@@ -57,7 +49,20 @@ function parseCSVRaw(text) {
       obj[h] = (parts[i] || "").trim();
     });
 
-    // Schritte einsammeln
+    return obj;
+  });
+
+  console.log("[Hilfecenter] Roh-Zeilen:", rows.length);
+  return { rows, header, delimiter };
+}
+
+// ----------------------------------------------------------
+// 2. Aus Rohdaten nutzbare Datensätze machen
+// ----------------------------------------------------------
+function buildData(parsed) {
+  const { rows } = parsed;
+
+  const cleaned = rows.map(obj => {
     const steps = [];
     for (let i = 1; i <= 20; i++) {
       const key = "schritt" + i;
@@ -85,32 +90,18 @@ function parseCSVRaw(text) {
     };
   });
 
-  console.log("[Hilfecenter] CSV-Zeilen gesamt (inkl. ggf. leer):", rows.length);
-  return rows;
-}
-
-// ----------------------------------------------------------
-// 2. Aus Rohdaten nutzbare Datensätze machen
-//    -> Nur kategorie + titel müssen gefüllt sein
-// ----------------------------------------------------------
-function buildData(text) {
-  const rows = parseCSVRaw(text);
-
-  const cleaned = rows.filter(r => r.kategorie && r.titel);
+  // Wir filtern nur auf: kategorie + titel müssen da sein
+  const used = cleaned.filter(r => r.kategorie && r.titel);
   console.log(
     "[Hilfecenter] Verwendete Zeilen (kategorie + titel gesetzt):",
-    cleaned.length
+    used.length
   );
 
-  if (cleaned.length === 0) {
-    console.warn("[Hilfecenter] Es wurde keine Zeile mit kategorie + titel gefunden.");
-  }
-
-  return cleaned;
+  return used;
 }
 
 // ----------------------------------------------------------
-// 3. Laden
+// 3. Laden + Debug, falls keine Daten
 // ----------------------------------------------------------
 async function loadData() {
   try {
@@ -122,16 +113,29 @@ async function loadData() {
       appEl.innerHTML =
         '<div class="empty-hint">Fehler beim Laden des Hilfecenters (Status ' +
         res.status +
-        '). Bitte prüfe: 1) Freigabe des Google Sheets, 2) CSV-Link.</div>';
+        '). Bitte CSV-Link und Freigabe prüfen.</div>';
       return;
     }
 
     const text = await res.text();
-    data = buildData(text);
+
+    // Wenn du gar nichts siehst, siehst du hier wenigstens den Anfang der CSV
+    console.log("[Hilfecenter] CSV-Preview:", text.slice(0, 200));
+
+    const parsed = parseCSV(text);
+    data = buildData(parsed);
 
     if (!data.length) {
+      // Debug-Ausgabe direkt im UI, damit du siehst, was reinkommt
       appEl.innerHTML =
-        '<div class="empty-hint">Das Sheet wurde geladen, aber es wurden keine Datensätze mit gefüllter „kategorie“ und „titel“-Spalte gefunden.</div>';
+        "<div class='empty-hint'>Das Sheet wurde geladen, aber es wurden keine Zeilen mit gefüllter " +
+        "Spalte 'kategorie' und 'titel' erkannt.<br><br>" +
+        "<strong>Header erkannt:</strong><br><pre>" +
+        parsed.header.join(" | ") +
+        "</pre><br>" +
+        "<strong>Erste Rohzeile:</strong><br><pre>" +
+        (parsed.rows[0] ? JSON.stringify(parsed.rows[0], null, 2) : "– keine –") +
+        "</pre></div>";
       return;
     }
 
@@ -148,6 +152,11 @@ async function loadData() {
 // 4. Kategorien
 // ----------------------------------------------------------
 function renderCategories() {
+  if (!categoryListEl) {
+    console.error("Element #categoryList nicht gefunden.");
+    return;
+  }
+
   categoryListEl.innerHTML = "";
 
   if (!data.length) {
@@ -323,7 +332,7 @@ function renderTopic(row) {
     checkbox.checked = done;
     checkbox.addEventListener("change", () => {
       toggleDone(id);
-      renderTopic(row); // neu rendern, damit durchgestrichen
+      renderTopic(row);
     });
 
     const span = document.createElement("span");
@@ -373,65 +382,67 @@ function toggleDone(id) {
 // ----------------------------------------------------------
 // 9. Suche
 // ----------------------------------------------------------
-searchInputEl.addEventListener("input", () => {
-  const q = searchInputEl.value.toLowerCase().trim();
-  if (!q || q.length < 2) {
-    searchResultsEl.style.display = "none";
-    searchResultsEl.innerHTML = "";
-    return;
-  }
-
-  const results = [];
-
-  data.forEach(row => {
-    let match = false;
-    if (row.titel.toLowerCase().includes(q)) match = true;
-    if (row.inhalt && row.inhalt.toLowerCase().includes(q)) match = true;
-    if (row.steps.some(s => s.text.toLowerCase().includes(q))) {
-      match = true;
-    }
-
-    if (match) results.push(row);
-  });
-
-  searchResultsEl.innerHTML = "";
-  if (!results.length) {
-    searchResultsEl.style.display = "block";
-    searchResultsEl.innerHTML =
-      '<div class="searchResult"><span class="k">Keine Treffer.</span></div>';
-    return;
-  }
-
-  results.slice(0, 50).forEach(row => {
-    const div = document.createElement("div");
-    div.className = "searchResult";
-
-    const spanK = document.createElement("span");
-    spanK.className = "k";
-    spanK.textContent = row.kategorie + " → ";
-
-    const spanT = document.createElement("span");
-    spanT.className = "t";
-    spanT.textContent = row.titel;
-
-    div.appendChild(spanK);
-    div.appendChild(spanT);
-
-    div.addEventListener("click", () => {
+if (searchInputEl) {
+  searchInputEl.addEventListener("input", () => {
+    const q = searchInputEl.value.toLowerCase().trim();
+    if (!q || q.length < 2) {
       searchResultsEl.style.display = "none";
       searchResultsEl.innerHTML = "";
-      searchInputEl.value = "";
-      currentCategory = row.kategorie;
-      currentTopicRow = row;
-      renderCategories();
-      renderTopic(row);
+      return;
+    }
+
+    const results = [];
+
+    data.forEach(row => {
+      let match = false;
+      if (row.titel.toLowerCase().includes(q)) match = true;
+      if (row.inhalt && row.inhalt.toLowerCase().includes(q)) match = true;
+      if (row.steps.some(s => s.text.toLowerCase().includes(q))) {
+        match = true;
+      }
+
+      if (match) results.push(row);
     });
 
-    searchResultsEl.appendChild(div);
-  });
+    searchResultsEl.innerHTML = "";
+    if (!results.length) {
+      searchResultsEl.style.display = "block";
+      searchResultsEl.innerHTML =
+        '<div class="searchResult"><span class="k">Keine Treffer.</span></div>';
+      return;
+    }
 
-  searchResultsEl.style.display = "block";
-});
+    results.slice(0, 50).forEach(row => {
+      const div = document.createElement("div");
+      div.className = "searchResult";
+
+      const spanK = document.createElement("span");
+      spanK.className = "k";
+      spanK.textContent = row.kategorie + " → ";
+
+      const spanT = document.createElement("span");
+      spanT.className = "t";
+      spanT.textContent = row.titel;
+
+      div.appendChild(spanK);
+      div.appendChild(spanT);
+
+      div.addEventListener("click", () => {
+        searchResultsEl.style.display = "none";
+        searchResultsEl.innerHTML = "";
+        searchInputEl.value = "";
+        currentCategory = row.kategorie;
+        currentTopicRow = row;
+        renderCategories();
+        renderTopic(row);
+      });
+
+      searchResultsEl.appendChild(div);
+    });
+
+    searchResultsEl.style.display = "block";
+  });
+}
 
 // ----------------------------------------------------------
 // 10. Start
