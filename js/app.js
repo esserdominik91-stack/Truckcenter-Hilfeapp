@@ -1,11 +1,15 @@
 // ==========================================================
-// Truckcenter Hilfecenter – Minimal, aber zuverlässig
-// Liest direkt dein Sheet:
-// kategorie, kategorie_reihenfolge, titel, inhalt,
-// schritt1..schritt20, reihenfolge, aktiv, highlight
+// Truckcenter Hilfecenter – FINAL FÜR HEUTE
+// - Liest dein Google Sheet:
+//   kategorie, kategorie_reihenfolge, titel, inhalt,
+//   schritt1..schritt20, reihenfolge, aktiv, highlight
+// - Kategorien sortiert nach kategorie_reihenfolge
+// - Themen sortiert nach reihenfolge
+// - Suche + Done-Status
 // ==========================================================
 
-// WICHTIG: Nur HIER ggf. gid anpassen, falls dein Tab nicht der erste ist
+// Wenn dein Hilfecenter-Tab das erste Tabellenblatt ist, passt gid=0.
+// Falls du unten im Sheet einen anderen Tab nutzt, nimm dessen gid aus der URL.
 const CSV_URL =
   "https://docs.google.com/spreadsheets/d/17Uc_pfVj4d2oPv45HwTaWTeYVHt2dzLaSpk5kziJy1w/export?format=csv&gid=0";
 
@@ -22,7 +26,7 @@ const STORAGE_KEY = "truckcenter-hilfe-steps-v6";
 let doneState = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
 
 // ----------------------------------------------------------
-// 1. CSV sehr einfach parsen (split(",")) – wie früher
+// 1. CSV parsen – mit automatischer Erkennung , oder ;
 // ----------------------------------------------------------
 function parseCSVRaw(text) {
   const lines = text
@@ -35,11 +39,18 @@ function parseCSVRaw(text) {
     return [];
   }
 
-  const header = lines[0].split(",").map(h => h.trim());
-  console.log("[Hilfecenter] Header:", header);
+  // Trennzeichen automatisch erkennen: mehr ; als , -> ;
+  const firstLine = lines[0];
+  const delimiter =
+    (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length
+      ? ";"
+      : ",";
+
+  const header = firstLine.split(delimiter).map(h => h.trim());
+  console.log("[Hilfecenter] Header:", header, "Delimiter:", delimiter);
 
   const rows = lines.slice(1).map((line, idx) => {
-    const parts = line.split(",");
+    const parts = line.split(delimiter);
     const obj = {};
 
     header.forEach((h, i) => {
@@ -55,11 +66,10 @@ function parseCSVRaw(text) {
       }
     }
 
-    // aktiv / highlight
     const aktivRaw = (obj["aktiv"] || "").toLowerCase();
     const highlightRaw = (obj["highlight"] || "").toLowerCase();
 
-    const row = {
+    return {
       kategorie: obj["kategorie"] || "",
       kategorieReihenfolge: obj["kategorie_reihenfolge"]
         ? Number(obj["kategorie_reihenfolge"])
@@ -73,8 +83,6 @@ function parseCSVRaw(text) {
       highlight: highlightRaw === "ja" || highlightRaw === "1",
       steps
     };
-
-    return row;
   });
 
   console.log("[Hilfecenter] CSV-Zeilen gesamt (inkl. ggf. leer):", rows.length);
@@ -82,14 +90,17 @@ function parseCSVRaw(text) {
 }
 
 // ----------------------------------------------------------
-// 2. Aus Roh-Daten sinnvolle Datensätze machen
-//    -> Nur kategorie + titel müssen befüllt sein
+// 2. Aus Rohdaten nutzbare Datensätze machen
+//    -> Nur kategorie + titel müssen gefüllt sein
 // ----------------------------------------------------------
 function buildData(text) {
   const rows = parseCSVRaw(text);
 
   const cleaned = rows.filter(r => r.kategorie && r.titel);
-  console.log("[Hilfecenter] Verwendete Zeilen (kategorie + titel gesetzt):", cleaned.length);
+  console.log(
+    "[Hilfecenter] Verwendete Zeilen (kategorie + titel gesetzt):",
+    cleaned.length
+  );
 
   if (cleaned.length === 0) {
     console.warn("[Hilfecenter] Es wurde keine Zeile mit kategorie + titel gefunden.");
