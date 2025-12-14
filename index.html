@@ -1,299 +1,391 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <title>Truckcenter Hilfecenter</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>Truckcenter Hilfecenter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #0f172a;
-            color: #f1f5f9;
-        }
+  <style>
+    :root {
+      --bg: #020617;
+      --bg-elevated: #020617;
+      --bg-card: #020617;
+      --border-subtle: #1f2937;
+      --border-strong: #38bdf8;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56,189,248,.1);
+      --text: #e5e7eb;
+      --text-muted: #9ca3af;
+      --danger: #f97373;
+    }
 
-        .container {
-            max-width: 800px;
-            margin: auto;
-            padding: 20px;
-        }
+    * {
+      box-sizing: border-box;
+    }
 
-        h2 {
-            margin-top: 0;
-            color: #38bdf8;
-        }
+    body {
+      margin: 0;
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background: radial-gradient(circle at top, #111827 0, #020617 45%, #000 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+    }
 
-        .listBtn, .backBtn {
-            display: block;
-            width: 100%;
-            text-align: left;
-            padding: 12px;
-            margin: 6px 0;
-            background: #1e293b;
-            border: 1px solid #334155;
-            color: #f1f5f9;
-            cursor: pointer;
-            border-radius: 6px;
-            font-size: 15px;
-        }
+    .shell {
+      width: 100%;
+      max-width: 1100px;
+      background: rgba(15,23,42,.98);
+      border-radius: 18px;
+      border: 1px solid rgba(148,163,184,.25);
+      box-shadow:
+        0 20px 45px rgba(0,0,0,.75),
+        0 0 0 1px rgba(15,23,42,.9);
+      padding: 16px 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
 
-        .listBtn:hover,
-        .backBtn:hover {
-            background: #334155;
-        }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 10px;
+    }
 
-        .highlight {
-            border-left: 4px solid #38bdf8;
-        }
+    header .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
 
-        .step {
-            padding: 10px 12px;
-            background: #1e293b;
-            border-radius: 6px;
-            margin: 8px 0;
-            border: 1px solid #334155;
-        }
+    header h1 {
+      margin: 0;
+      font-size: 1.1rem;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
 
-        .stepRow {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    header .subtitle {
+      font-size: .8rem;
+      color: var(--text-muted);
+    }
 
-        #searchInput {
-            width: 100%;
-            padding: 12px;
-            border-radius: 6px;
-            border: none;
-            margin-bottom: 10px;
-            font-size: 15px;
-        }
+    .badge {
+      font-size: .7rem;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(56,189,248,.3);
+      background: radial-gradient(circle at top left, rgba(56,189,248,.25), rgba(15,23,42,1) 60%);
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      white-space: nowrap;
+    }
 
-        #searchResults {
-            background: #1e293b;
-            border-radius: 6px;
-            border: 1px solid #334155;
-            display: none;
-            margin-bottom: 10px;
-        }
+    .topbar {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
 
-        .searchResult {
-            padding: 10px;
-            cursor: pointer;
-            border-bottom: 1px solid #334155;
-        }
+    .search-wrapper {
+      position: relative;
+    }
 
-        .searchResult:hover {
-            background: #334155;
-        }
-    </style>
+    #searchInput {
+      width: 100%;
+      padding: 10px 12px 10px 32px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: #020617;
+      color: var(--text);
+      font-size: .9rem;
+      outline: none;
+    }
+
+    #searchInput::placeholder {
+      color: var(--text-muted);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: .9rem;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    #searchResults {
+      margin-top: 6px;
+      background: var(--bg-card);
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      display: none;
+      max-height: 260px;
+      overflow-y: auto;
+      font-size: .85rem;
+    }
+
+    .searchResult {
+      padding: 8px 10px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(15,23,42,1);
+    }
+
+    .searchResult:last-child {
+      border-bottom: none;
+    }
+
+    .searchResult:hover {
+      background: rgba(15,23,42,1);
+    }
+
+    .searchResult span.k {
+      color: var(--text-muted);
+    }
+
+    .searchResult span.t {
+      color: var(--accent);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+      gap: 14px;
+      margin-top: 2px;
+    }
+
+    @media (max-width: 800px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .sidebar {
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .sidebar-title {
+      font-size: .8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .category-btn {
+      width: 100%;
+      text-align: left;
+      padding: 8px 9px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text);
+      font-size: .9rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .category-btn span.label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .category-btn span.count {
+      font-size: .7rem;
+      color: var(--text-muted);
+    }
+
+    .category-btn:hover {
+      background: rgba(15,23,42,1);
+      border-color: var(--border-subtle);
+    }
+
+    .category-btn.active {
+      background: var(--accent-soft);
+      border-color: var(--border-strong);
+      color: var(--accent);
+    }
+
+    .main {
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      padding: 12px 12px 14px;
+      min-height: 220px;
+    }
+
+    .main h2 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .breadcrumb {
+      font-size: .78rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .breadcrumb button {
+      border: none;
+      background: none;
+      color: var(--accent);
+      cursor: pointer;
+      padding: 0;
+      font-size: inherit;
+    }
+
+    .breadcrumb span.sep {
+      margin: 0 4px;
+      color: var(--text-muted);
+    }
+
+    .topicIntro {
+      font-size: .9rem;
+      color: var(--text-muted);
+      background: rgba(15,23,42,1);
+      border-radius: 8px;
+      padding: 8px 9px;
+      margin-bottom: 10px;
+      border: 1px dashed var(--border-subtle);
+    }
+
+    .topic-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .topic-btn {
+      width: 100%;
+      text-align: left;
+      padding: 8px 9px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(15,23,42,1);
+      color: var(--text);
+      font-size: .9rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .topic-btn.highlight {
+      border-color: var(--border-strong);
+      box-shadow: 0 0 0 1px rgba(56,189,248,.4);
+    }
+
+    .topic-btn .t-title {
+      font-weight: 500;
+    }
+
+    .topic-btn .t-sub {
+      font-size: .76rem;
+      color: var(--text-muted);
+    }
+
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .step {
+      border-radius: 8px;
+      background: rgba(15,23,42,1);
+      border: 1px solid var(--border-subtle);
+      padding: 7px 9px;
+      font-size: .9rem;
+    }
+
+    .stepRow {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .stepRow input[type="checkbox"] {
+      margin-top: 3px;
+      cursor: pointer;
+    }
+
+    .stepRow span.txt {
+      display: inline-block;
+      white-space: pre-wrap;
+    }
+
+    .stepRow span.txt.done {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .empty-hint {
+      font-size: .85rem;
+      color: var(--text-muted);
+      padding: 6px 2px;
+    }
+  </style>
 </head>
-
 <body>
-<div class="container">
-    <input id="searchInput" type="text" placeholder="Suchen…">
-    <div id="searchResults"></div>
-    <div id="app"></div>
-</div>
+  <div class="shell">
+    <header>
+      <div class="title-block">
+        <h1>Truckcenter Hilfecenter</h1>
+        <div class="subtitle">Interne Hilfe · Anleitungen · Prozess-Schritte</div>
+      </div>
+      <div class="badge">Sheet-gestützt · Live</div>
+    </header>
 
-<script>
-// ==========================================================
-// Truckcenter Hilfecenter – FINAL VERSION
-// Google Sheet angebunden, Kategorie sortiert, Themen sortiert
-// ==========================================================
+    <div class="topbar">
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input id="searchInput" type="text" placeholder="Suche nach Kategorie, Thema oder Schritt …">
+      </div>
+      <div id="searchResults"></div>
+    </div>
 
-let data = [];
-let currentCategory = null;
-let currentTopic = null;
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-title">Kategorien</div>
+        <div id="categoryList"></div>
+      </aside>
 
-const appEl = document.getElementById("app");
-const searchInputEl = document.getElementById("searchInput");
-const searchResultsEl = document.getElementById("searchResults");
+      <main class="main">
+        <div id="app">
+          <div class="empty-hint">
+            Wähle links eine Kategorie oder nutze die Suche, um eine Anleitung zu öffnen.
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
 
-const STORAGE_KEY = "truckcenter-hilfe-v3";
-let doneState = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-
-// ==========================================================
-// CSV LADEN
-// ==========================================================
-async function loadCSV() {
-    const csvUrl = "https://docs.google.com/spreadsheets/d/17Uc_pfVj4d2oPv45HwTaWTeYVHt2dzLaSpk5kziJy1w/export?format=csv&gid=0";
-
-    const res = await fetch(csvUrl);
-    const text = await res.text();
-    data = parseCSV(text);
-    renderCategories();
-}
-
-// ==========================================================
-// CSV PARSEN
-// ==========================================================
-function parseCSV(str) {
-    const lines = str.split("\n").filter(x => x.trim());
-    const headers = lines[0].split(",");
-
-    const rows = lines.slice(1).map(line => {
-        const parts = line.split(",");
-        let row = {};
-
-        headers.forEach((h, i) => row[h.trim()] = parts[i] ? parts[i].trim() : "");
-
-        const steps = [];
-        for (let i = 1; i <= 20; i++) {
-            const key = `schritt${i}`;
-            if (row[key] && row[key].trim() !== "") {
-                steps.push({ num: i, text: row[key].trim() });
-            }
-        }
-
-        const aktiv = (row["aktiv"] || "").toLowerCase();
-        const highlight = (row["highlight"] || "").toLowerCase();
-
-        return {
-            kategorie: row["kategorie"],
-            kategorieReihenfolge: row["kategorie_reihenfolge"] ? Number(row["kategorie_reihenfolge"]) : 9999,
-            titel: row["titel"],
-            inhalt: row["inhalt"],
-            reihenfolge: row["reihenfolge"] ? Number(row["reihenfolge"]) : 9999,
-            aktiv: aktiv === "" || aktiv === "ja",
-            highlight: highlight === "ja",
-            steps
-        };
-    });
-
-    return rows.filter(r =>
-        r.kategorie &&
-        r.titel &&
-        r.steps.length > 0 &&
-        r.aktiv
-    );
-}
-
-// ==========================================================
-// KATEGORIEN RENDERN (SORTIERT)
-// ==========================================================
-function renderCategories() {
-    appEl.innerHTML = "<h2>Kategorien</h2>";
-
-    const categories = [...new Set(data.map(d => d.kategorie))];
-
-    const sortedCategories = categories
-        .map(cat => {
-            const row = data.find(r => r.kategorie === cat);
-            return { name: cat, order: row.kategorieReihenfolge };
-        })
-        .sort((a, b) => a.order - b.order);
-
-    sortedCategories.forEach(catObj => {
-        const btn = document.createElement("button");
-        btn.className = "listBtn";
-        btn.textContent = catObj.name;
-        btn.onclick = () => openCategory(catObj.name);
-        appEl.appendChild(btn);
-    });
-}
-
-// ==========================================================
-// THEMEN ANZEIGEN
-// ==========================================================
-function openCategory(cat) {
-    const topics = data
-        .filter(r => r.kategorie === cat)
-        .sort((a, b) => a.reihenfolge - b.reihenfolge);
-
-    appEl.innerHTML = `
-        <button class="backBtn listBtn" onclick="renderCategories()">← Zurück</button>
-        <h2>${cat}</h2>
-    `;
-
-    topics.forEach(row => {
-        const btn = document.createElement("button");
-        btn.className = "listBtn";
-        if (row.highlight) btn.classList.add("highlight");
-        btn.textContent = row.titel;
-        btn.onclick = () => openTopic(row);
-        appEl.appendChild(btn);
-    });
-}
-
-// ==========================================================
-// SCHRITTE ANZEIGEN
-// ==========================================================
-function openTopic(row) {
-    appEl.innerHTML = `
-        <button class="backBtn listBtn" onclick="openCategory('${row.kategorie.replace(/'/g,"\\'")}')">← Zurück</button>
-        <h2>${row.kategorie} – ${row.titel}</h2>
-    `;
-
-    if (row.inhalt) {
-        const intro = document.createElement("div");
-        intro.style.padding = "10px 0 12px";
-        intro.style.color = "#94a3b8";
-        intro.textContent = row.inhalt;
-        appEl.appendChild(intro);
-    }
-
-    row.steps.forEach(step => {
-        const id = `${row.kategorie}_${row.titel}_${step.num}`;
-        const done = doneState[id] === true;
-
-        const div = document.createElement("div");
-        div.className = "step";
-
-        div.innerHTML = `
-            <div class="stepRow">
-                <input type="checkbox" ${done ? "checked" : ""} onclick="toggleDone('${id}')">
-                <span>${step.num}. ${step.text}</span>
-            </div>
-        `;
-
-        appEl.appendChild(div);
-    });
-}
-
-// ==========================================================
-// DONE-STATE
-// ==========================================================
-function toggleDone(id) {
-    doneState[id] = !doneState[id];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(doneState));
-}
-
-// ==========================================================
-// SUCHE
-// ==========================================================
-searchInputEl.addEventListener("input", () => {
-    const q = searchInputEl.value.toLowerCase().trim();
-    if (q.length < 2) {
-        searchResultsEl.style.display = "none";
-        return;
-    }
-
-    const results = data.filter(row =>
-        row.titel.toLowerCase().includes(q) ||
-        (row.inhalt && row.inhalt.toLowerCase().includes(q)) ||
-        row.steps.some(s => s.text.toLowerCase().includes(q))
-    );
-
-    searchResultsEl.innerHTML = "";
-    searchResultsEl.style.display = "block";
-
-    results.slice(0, 50).forEach(row => {
-        const div = document.createElement("div");
-        div.className = "searchResult";
-        div.textContent = `${row.kategorie} → ${row.titel}`;
-        div.onclick = () => {
-            searchResultsEl.style.display = "none";
-            searchInputEl.value = "";
-            openTopic(row);
-        };
-        searchResultsEl.appendChild(div);
-    });
-});
-
-// ==========================================================
-loadCSV();
-</script>
+  <script src="app.js"></script>
 </body>
 </html>
