@@ -1,273 +1,183 @@
-// ==========================
-// Konfiguration: Google Sheet
-// ==========================
+// ==============================================
+// Truckcenter Hilfecenter – Vollversion
+// Kategorie-Reihenfolge steuerbar über Google Sheet
+// ==============================================
 
-// Sheet-ID aus deiner URL:
-// https://docs.google.com/spreadsheets/d/17Uc_pfVj4d2oPv45HwTaWTeYVHt2dzLaSpk5kziJy1w/edit
-const SHEET_ID = "17Uc_pfVj4d2oPv45HwTaWTeYVHt2dzLaSpk5kziJy1w";
-const SHEET_NAME = "Tabellenblatt1";
+let data = [];
+let currentCategory = null;
+let currentTopic = null;
 
-// gviz-API-URL bauen
-function buildSheetUrl(sheetName) {
-  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(
-    sheetName
-  )}`;
+const appEl = document.getElementById("app");
+const searchInputEl = document.getElementById("searchInput");
+const searchResultsEl = document.getElementById("searchResults");
+
+const STORAGE_KEY = "truckcenter-hilfe-steps-done";
+let doneState = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+
+// ======================================================
+// 1. CSV EINLESEN
+// ======================================================
+async function loadCSV() {
+    const csvUrl = "DEIN_CSV_EXPORT_LINK_HIER";
+    const res = await fetch(csvUrl);
+    const text = await res.text();
+
+    data = parseCSV(text);
+
+    renderCategories();
 }
 
-// gviz → JS-Objekte
-async function fetchSheetRows(sheetName) {
-  const url = buildSheetUrl(sheetName);
-  const res = await fetch(url);
-  const text = await res.text();
+// ======================================================
+// 2. CSV → JSON PARSER
+// ======================================================
+function parseCSV(str) {
+    const lines = str.split("\n").filter(l => l.trim().length > 0);
+    const headers = lines[0].split(",");
 
-  // gviz liefert kein reines JSON, daher Wrapper entfernen
-  const json = JSON.parse(text.replace(/^[^{]+/, "").replace(/;$/, ""));
-  const cols = json.table.cols.map((c) => c.label);
-  const rows = json.table.rows;
+    return lines.slice(1).map(line => {
+        const parts = line.split(",");
+        let obj = {};
 
-  return rows.map((row) => {
-    const obj = {};
-    cols.forEach((colName, index) => {
-      const cell = row.c[index];
-      obj[colName] = cell ? cell.v : "";
+        headers.forEach((h, i) => {
+            obj[h.trim()] = parts[i] ? parts[i].trim() : "";
+        });
+
+        return {
+            kategorie: obj["Kategorie"],
+            kategorieReihenfolge: obj["Kategorie_Reihenfolge"] ? Number(obj["Kategorie_Reihenfolge"]) : 9999,
+            thema: obj["Thema"],
+            schrittNummer: obj["Schritt_Nr"],
+            schrittText: obj["Schritt_Text"]
+        };
     });
-    return obj;
-  });
 }
 
-// ==========================
-// App-Datenmodell
-// ==========================
+// ======================================================
+// 3. UI RENDERING – KATEGORIEN (mit Reihenfolge)
+// ======================================================
+function renderCategories() {
+    const categories = [...new Set(data.map(d => d.kategorie))];
 
-const appData = {
-  categories: [], // [{ id, displayName }]
-  entries: [], // [{ id, categoryId, title, content, steps[], sortOrder, active, highlight }]
-  currentCategoryId: null,
-  searchQuery: ""
-};
+    const ordered = categories
+        .map(cat => {
+            const row = data.find(r => r.kategorie === cat);
+            return {
+                name: cat,
+                order: row.kategorieReihenfolge
+            };
+        })
+        .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
 
-function slugify(str) {
-  return String(str || "")
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9\-]/g, "");
-}
+    appEl.innerHTML = "<h2>Wähle eine Kategorie</h2>";
 
-function toBool(val) {
-  if (val === null || val === undefined) return false;
-  const s = String(val).toLowerCase(); // ggf. trim()
-  return ["ja", "yes", "true", "1", "wahr", "x"].includes(s.trim());
-}
-
-// Sheet-Zeilen in appData mappen
-async function loadAppDataFromSheet() {
-  const rows = await fetchSheetRows(SHEET_NAME);
-
-  const entries = [];
-  const categoryMap = new Map(); // slug -> { id, displayName }
-
-  rows.forEach((row, index) => {
-    const hasContent = row.kategorie || row.titel || row.inhalt;
-    if (!hasContent) return;
-
-    const categoryName = row.kategorie || "Allgemein";
-    const categorySlug = slugify(categoryName);
-
-    if (!categoryMap.has(categorySlug)) {
-      categoryMap.set(categorySlug, {
-        id: categorySlug,
-        displayName: categoryName
-      });
-    }
-
-    const steps = [];
-    Object.keys(row).forEach((key) => {
-      if (key.toLowerCase().startsWith("schritt") && row[key]) {
-        const parts = String(row[key])
-          .split(/\r?\n/)
-          .map((s) => s.trim())
-          .filter(Boolean);
-        steps.push(...parts);
-      }
+    ordered.forEach(obj => {
+        const btn = document.createElement("button");
+        btn.className = "listBtn";
+        btn.textContent = obj.name;
+        btn.onclick = () => openCategory(obj.name);
+        appEl.appendChild(btn);
     });
+}
 
-    const sortOrder = row.reihenfolge ? Number(row.reihenfolge) : 9999;
-    const active = toBool(row.aktiv);
-    const highlight = toBool(row.highlight);
-    const entryId = `row_${index + 2}`; // Zeile im Sheet (Header = Zeile 1)
+// ======================================================
+// 4. UI RENDERING – THEMEN
+// ======================================================
+function openCategory(cat) {
+    currentCategory = cat;
 
-    entries.push({
-      id: entryId,
-      categoryId: categorySlug,
-      title: row.titel || "",
-      content: row.inhalt || "",
-      steps,
-      sortOrder,
-      active,
-      highlight
+    const topics = [...new Set(data.filter(d => d.kategorie === cat).map(d => d.thema))];
+
+    appEl.innerHTML = `
+        <button class="backBtn" onclick="renderCategories()">← Zurück</button>
+        <h2>${cat}</h2>
+    `;
+
+    topics.forEach(t => {
+        const btn = document.createElement("button");
+        btn.className = "listBtn";
+        btn.textContent = t;
+        btn.onclick = () => openTopic(t);
+
+        appEl.appendChild(btn);
     });
-  });
-
-  appData.categories = Array.from(categoryMap.values()).sort((a, b) =>
-    a.displayName.localeCompare(b.displayName, "de")
-  );
-
-  appData.entries = entries
-    .filter((e) => e.active)
-    .sort((a, b) => a.sortOrder - b.sortOrder);
-
-  if (appData.categories.length) {
-    appData.currentCategoryId = appData.categories[0].id;
-  }
 }
 
-// ==========================
-// UI-Rendering
-// ==========================
+// ======================================================
+// 5. UI RENDERING – SCHRITTE
+// ======================================================
+function openTopic(topic) {
+    currentTopic = topic;
 
-function renderCategoryNavigation() {
-  const nav = document.getElementById("category-nav");
-  if (!nav) return;
+    const steps = data
+        .filter(d => d.kategorie === currentCategory && d.thema === topic)
+        .sort((a, b) => Number(a.schrittNummer) - Number(b.schrittNummer));
 
-  nav.innerHTML = "";
+    appEl.innerHTML = `
+        <button class="backBtn" onclick="openCategory('${currentCategory}')">← Zurück</button>
+        <h2>${currentCategory} – ${topic}</h2>
+    `;
 
-  appData.categories.forEach((cat) => {
-    const btn = document.createElement("button");
-    btn.textContent = cat.displayName;
-    btn.classList.add("category-button");
-    btn.dataset.categoryId = cat.id;
+    steps.forEach(s => {
+        const id = `${currentCategory}_${topic}_${s.schrittNummer}`;
+        const done = doneState[id] === true;
 
-    if (cat.id === appData.currentCategoryId) {
-      btn.classList.add("is-active");
-    }
+        const div = document.createElement("div");
+        div.className = "step";
 
-    btn.addEventListener("click", () => {
-      appData.currentCategoryId = cat.id;
-      appData.searchQuery = "";
-      const searchInput = document.getElementById("search-input");
-      if (searchInput) searchInput.value = "";
-      renderCategoryNavigation();
-      renderEntryList();
+        div.innerHTML = `
+            <div class="stepRow">
+                <input type="checkbox" ${done ? "checked" : ""} onclick="toggleDone('${id}')">
+                <span>${s.schrittNummer}. ${s.schrittText}</span>
+            </div>
+        `;
+
+        appEl.appendChild(div);
     });
-
-    nav.appendChild(btn);
-  });
 }
 
-function getFilteredEntries() {
-  let entries = appData.entries;
+// ======================================================
+// 6. DONE-STATE
+// ======================================================
+function toggleDone(id) {
+    doneState[id] = !doneState[id];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(doneState));
+}
 
-  if (appData.currentCategoryId) {
-    entries = entries.filter((e) => e.categoryId === appData.currentCategoryId);
-  }
+// ======================================================
+// 7. SUCHFUNKTION
+// ======================================================
+searchInputEl.addEventListener("input", () => {
+    const q = searchInputEl.value.toLowerCase().trim();
+    if (q.length < 2) {
+        searchResultsEl.style.display = "none";
+        return;
+    }
 
-  const q = appData.searchQuery.trim().toLowerCase();
-  if (q) {
-    entries = entries.filter((e) => {
-      const catName =
-        appData.categories.find((c) => c.id === e.categoryId)?.displayName || "";
-      const haystack = [e.title, e.content, ...(e.steps || []), catName]
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(q);
+    const results = data.filter(row =>
+        row.schrittText.toLowerCase().includes(q) ||
+        row.thema.toLowerCase().includes(q) ||
+        row.kategorie.toLowerCase().includes(q)
+    );
+
+    searchResultsEl.innerHTML = "";
+    searchResultsEl.style.display = "block";
+
+    results.slice(0, 50).forEach(r => {
+        const div = document.createElement("div");
+        div.className = "searchResult";
+        div.textContent = `${r.kategorie} → ${r.thema} → ${r.schrittNummer}. ${r.schrittText}`;
+        div.onclick = () => {
+            searchResultsEl.style.display = "none";
+            searchInputEl.value = "";
+            currentCategory = r.kategorie;
+            currentTopic = r.thema;
+            openTopic(r.thema);
+        };
+        searchResultsEl.appendChild(div);
     });
-  }
-
-  return entries;
-}
-
-function renderEntryList() {
-  const container = document.getElementById("entry-list");
-  const loadingEl = document.getElementById("loading-indicator");
-  if (!container) return;
-
-  container.innerHTML = "";
-  if (loadingEl) loadingEl.style.display = "none";
-
-  const entries = getFilteredEntries();
-
-  if (!entries.length) {
-    const p = document.createElement("p");
-    p.textContent =
-      "Für diese Auswahl sind aktuell keine Einträge hinterlegt. Bitte eine andere Kategorie wählen oder das Sheet prüfen.";
-    container.appendChild(p);
-    return;
-  }
-
-  entries.forEach((entry) => {
-    const card = document.createElement("article");
-    card.classList.add("entry-card");
-    if (entry.highlight) {
-      card.classList.add("entry-card--highlight");
-    }
-
-    if (entry.title) {
-      const titleEl = document.createElement("h3");
-      titleEl.textContent = entry.title;
-      card.appendChild(titleEl);
-    }
-
-    if (entry.content) {
-      const contentEl = document.createElement("p");
-      contentEl.textContent = entry.content;
-      card.appendChild(contentEl);
-    }
-
-    if (entry.steps && entry.steps.length) {
-      const stepsList = document.createElement("ol");
-      stepsList.classList.add("entry-steps");
-      entry.steps.forEach((step) => {
-        const li = document.createElement("li");
-        li.textContent = step;
-        stepsList.appendChild(li);
-      });
-      card.appendChild(stepsList);
-    }
-
-    container.appendChild(card);
-  });
-}
-
-// ==========================
-// Initialisierung
-// ==========================
-
-document.addEventListener("DOMContentLoaded", async () => {
-  const loadingEl = document.getElementById("loading-indicator");
-  const searchInput = document.getElementById("search-input");
-
-  if (loadingEl) {
-    loadingEl.textContent = "Inhalte werden aus dem Truckcenter-Sheet geladen …";
-  }
-
-  try {
-    await loadAppDataFromSheet();
-
-    if (!appData.categories.length) {
-      if (loadingEl) {
-        loadingEl.textContent =
-          "Keine Inhalte im Sheet gefunden. Bitte das Tabellenblatt 'Tabellenblatt1' prüfen.";
-      }
-      return;
-    }
-
-    renderCategoryNavigation();
-    renderEntryList();
-
-    if (loadingEl) loadingEl.style.display = "none";
-
-    if (searchInput) {
-      searchInput.addEventListener("input", (e) => {
-        appData.searchQuery = e.target.value || "";
-        renderEntryList();
-      });
-    }
-  } catch (err) {
-    console.error("Fehler beim Laden der Daten aus dem Sheet:", err);
-    if (loadingEl) {
-      loadingEl.textContent =
-        "Fehler beim Laden der Inhalte. Bitte Internetverbindung und Freigabe des Sheets prüfen.";
-    }
-  }
 });
+
+// ======================================================
+// 8. INIT
+// ======================================================
+loadCSV();
