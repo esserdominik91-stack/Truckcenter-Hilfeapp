@@ -1,73 +1,299 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <title>Truck Center Hilfe – Wohnauflieger Hilfecenter</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    <title>Truckcenter Hilfecenter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Browser- & Mobile-Farbe -->
-  <meta name="theme-color" content="#1e293b" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #f1f5f9;
+        }
 
-  <!-- Favicon / App-Icon -->
-  <link rel="icon" type="image/svg+xml" href="assets/logo-truckcenter.svg" />
-  <link rel="apple-touch-icon" href="assets/logo-truckcenter.svg" />
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+        }
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="assets/styles.css" />
+        h2 {
+            margin-top: 0;
+            color: #38bdf8;
+        }
+
+        .listBtn, .backBtn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 12px;
+            margin: 6px 0;
+            background: #1e293b;
+            border: 1px solid #334155;
+            color: #f1f5f9;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+
+        .listBtn:hover,
+        .backBtn:hover {
+            background: #334155;
+        }
+
+        .highlight {
+            border-left: 4px solid #38bdf8;
+        }
+
+        .step {
+            padding: 10px 12px;
+            background: #1e293b;
+            border-radius: 6px;
+            margin: 8px 0;
+            border: 1px solid #334155;
+        }
+
+        .stepRow {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #searchInput {
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            border: none;
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+
+        #searchResults {
+            background: #1e293b;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            display: none;
+            margin-bottom: 10px;
+        }
+
+        .searchResult {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #334155;
+        }
+
+        .searchResult:hover {
+            background: #334155;
+        }
+    </style>
 </head>
+
 <body>
-  <!-- HEADER -->
-  <header class="header">
-    <div class="header__brand">
-      <!-- App-Logo -->
-      <img
-        src="assets/logo-truckcenter.svg"
-        alt="Truck Center Hilfe"
-        style="height:46px;border-radius:14px;border:1px solid #0f172a;background:#0f172a;"
-      />
-      <div>
-        <h1>Truck Center Hilfe</h1>
-        <p class="header__subtitle">
-          Digitales Hilfecenter für Wohnauflieger – Checklisten, Diagnose & Service.
-        </p>
-      </div>
-    </div>
+<div class="container">
+    <input id="searchInput" type="text" placeholder="Suchen…">
+    <div id="searchResults"></div>
+    <div id="app"></div>
+</div>
 
-    <!-- Suche -->
-    <div class="header__search">
-      <input
-        id="searchInput"
-        type="search"
-        placeholder="Suche nach Thema oder Problem …"
-        autocomplete="off"
-      />
-      <!-- Container für dynamische Suchergebnisse (wird per JS gefüllt) -->
-      <ul id="searchResults" class="search-results" style="display:none;"></ul>
-    </div>
-  </header>
+<script>
+// ==========================================================
+// Truckcenter Hilfecenter – FINAL VERSION
+// Google Sheet angebunden, Kategorie sortiert, Themen sortiert
+// ==========================================================
 
-  <!-- APP-HAUPTINHALT -->
-  <main id="app" class="app">
-    <!-- Wird komplett von js/app.js befüllt -->
-    <p>Lade Inhalte …</p>
-  </main>
+let data = [];
+let currentCategory = null;
+let currentTopic = null;
 
-  <!-- FOOTER -->
-  <footer class="footer">
-    <small>© <span id="year"></span> Truck Center Hilfe – Wohnauflieger Support</small>
-  </footer>
+const appEl = document.getElementById("app");
+const searchInputEl = document.getElementById("searchInput");
+const searchResultsEl = document.getElementById("searchResults");
 
-  <!-- SCRIPTS -->
-  <script>
-    // Jahr im Footer setzen
-    document.addEventListener("DOMContentLoaded", function () {
-      var y = document.getElementById("year");
-      if (y) y.textContent = new Date().getFullYear();
+const STORAGE_KEY = "truckcenter-hilfe-v3";
+let doneState = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+
+// ==========================================================
+// CSV LADEN
+// ==========================================================
+async function loadCSV() {
+    const csvUrl = "https://docs.google.com/spreadsheets/d/17Uc_pfVj4d2oPv45HwTaWTeYVHt2dzLaSpk5kziJy1w/export?format=csv&gid=0";
+
+    const res = await fetch(csvUrl);
+    const text = await res.text();
+    data = parseCSV(text);
+    renderCategories();
+}
+
+// ==========================================================
+// CSV PARSEN
+// ==========================================================
+function parseCSV(str) {
+    const lines = str.split("\n").filter(x => x.trim());
+    const headers = lines[0].split(",");
+
+    const rows = lines.slice(1).map(line => {
+        const parts = line.split(",");
+        let row = {};
+
+        headers.forEach((h, i) => row[h.trim()] = parts[i] ? parts[i].trim() : "");
+
+        const steps = [];
+        for (let i = 1; i <= 20; i++) {
+            const key = `schritt${i}`;
+            if (row[key] && row[key].trim() !== "") {
+                steps.push({ num: i, text: row[key].trim() });
+            }
+        }
+
+        const aktiv = (row["aktiv"] || "").toLowerCase();
+        const highlight = (row["highlight"] || "").toLowerCase();
+
+        return {
+            kategorie: row["kategorie"],
+            kategorieReihenfolge: row["kategorie_reihenfolge"] ? Number(row["kategorie_reihenfolge"]) : 9999,
+            titel: row["titel"],
+            inhalt: row["inhalt"],
+            reihenfolge: row["reihenfolge"] ? Number(row["reihenfolge"]) : 9999,
+            aktiv: aktiv === "" || aktiv === "ja",
+            highlight: highlight === "ja",
+            steps
+        };
     });
-  </script>
 
-  <!-- Haupt-App-Logik (Kategorien, Topics, Steps, Diagnose, LocalStorage usw.) -->
-  <script src="js/app.js"></script>
+    return rows.filter(r =>
+        r.kategorie &&
+        r.titel &&
+        r.steps.length > 0 &&
+        r.aktiv
+    );
+}
+
+// ==========================================================
+// KATEGORIEN RENDERN (SORTIERT)
+// ==========================================================
+function renderCategories() {
+    appEl.innerHTML = "<h2>Kategorien</h2>";
+
+    const categories = [...new Set(data.map(d => d.kategorie))];
+
+    const sortedCategories = categories
+        .map(cat => {
+            const row = data.find(r => r.kategorie === cat);
+            return { name: cat, order: row.kategorieReihenfolge };
+        })
+        .sort((a, b) => a.order - b.order);
+
+    sortedCategories.forEach(catObj => {
+        const btn = document.createElement("button");
+        btn.className = "listBtn";
+        btn.textContent = catObj.name;
+        btn.onclick = () => openCategory(catObj.name);
+        appEl.appendChild(btn);
+    });
+}
+
+// ==========================================================
+// THEMEN ANZEIGEN
+// ==========================================================
+function openCategory(cat) {
+    const topics = data
+        .filter(r => r.kategorie === cat)
+        .sort((a, b) => a.reihenfolge - b.reihenfolge);
+
+    appEl.innerHTML = `
+        <button class="backBtn listBtn" onclick="renderCategories()">← Zurück</button>
+        <h2>${cat}</h2>
+    `;
+
+    topics.forEach(row => {
+        const btn = document.createElement("button");
+        btn.className = "listBtn";
+        if (row.highlight) btn.classList.add("highlight");
+        btn.textContent = row.titel;
+        btn.onclick = () => openTopic(row);
+        appEl.appendChild(btn);
+    });
+}
+
+// ==========================================================
+// SCHRITTE ANZEIGEN
+// ==========================================================
+function openTopic(row) {
+    appEl.innerHTML = `
+        <button class="backBtn listBtn" onclick="openCategory('${row.kategorie.replace(/'/g,"\\'")}')">← Zurück</button>
+        <h2>${row.kategorie} – ${row.titel}</h2>
+    `;
+
+    if (row.inhalt) {
+        const intro = document.createElement("div");
+        intro.style.padding = "10px 0 12px";
+        intro.style.color = "#94a3b8";
+        intro.textContent = row.inhalt;
+        appEl.appendChild(intro);
+    }
+
+    row.steps.forEach(step => {
+        const id = `${row.kategorie}_${row.titel}_${step.num}`;
+        const done = doneState[id] === true;
+
+        const div = document.createElement("div");
+        div.className = "step";
+
+        div.innerHTML = `
+            <div class="stepRow">
+                <input type="checkbox" ${done ? "checked" : ""} onclick="toggleDone('${id}')">
+                <span>${step.num}. ${step.text}</span>
+            </div>
+        `;
+
+        appEl.appendChild(div);
+    });
+}
+
+// ==========================================================
+// DONE-STATE
+// ==========================================================
+function toggleDone(id) {
+    doneState[id] = !doneState[id];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(doneState));
+}
+
+// ==========================================================
+// SUCHE
+// ==========================================================
+searchInputEl.addEventListener("input", () => {
+    const q = searchInputEl.value.toLowerCase().trim();
+    if (q.length < 2) {
+        searchResultsEl.style.display = "none";
+        return;
+    }
+
+    const results = data.filter(row =>
+        row.titel.toLowerCase().includes(q) ||
+        (row.inhalt && row.inhalt.toLowerCase().includes(q)) ||
+        row.steps.some(s => s.text.toLowerCase().includes(q))
+    );
+
+    searchResultsEl.innerHTML = "";
+    searchResultsEl.style.display = "block";
+
+    results.slice(0, 50).forEach(row => {
+        const div = document.createElement("div");
+        div.className = "searchResult";
+        div.textContent = `${row.kategorie} → ${row.titel}`;
+        div.onclick = () => {
+            searchResultsEl.style.display = "none";
+            searchInputEl.value = "";
+            openTopic(row);
+        };
+        searchResultsEl.appendChild(div);
+    });
+});
+
+// ==========================================================
+loadCSV();
+</script>
 </body>
 </html>
