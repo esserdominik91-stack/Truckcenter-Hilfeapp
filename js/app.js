@@ -11,7 +11,7 @@
 // Wenn dein Hilfecenter-Tab das erste Tabellenblatt ist, passt gid=0.
 // Falls du unten im Sheet einen anderen Tab nutzt, nimm dessen gid aus der URL.
 const CSV_URL =
-  "https://docs.google.com/spreadsheets/d/17Uc_pfVj4d2oPv45HwTaWTeYVHt2dzLaSpk5kziJy1w/export?format=csv&gid=0";
+  "https://docs.google.com/spreadsheets/d/17Uc_pfVj4d2oPv45HwTaWTeYVHt2dzLaSpk5kziJy1w/export?format=csv";
 
 let data = [];
 let currentCategory = null;
