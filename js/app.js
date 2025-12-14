@@ -2,8 +2,8 @@
 // Truckcenter Hilfecenter – FINAL + Debug (mit Header-Normalisierung)
 // ==========================================================
 
-const CSV_URL =
-  "https://docs.google.com/spreadsheets/d/17Uc_pfVj4d2oPv45HwTaWTeYVHt2dzLaSpk5kziJy1w/export?format=csv&gid=0";
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCXjTKGowsZ4NrxhRqueZyKaDA5ny-lSAuxNaxhCOmlk_SAmI9WBGCRnY-yeOzKOvNl_DuD4T49EMK/pub?output=csv";
+
 
 let data = [];
 let currentCategory = null;
