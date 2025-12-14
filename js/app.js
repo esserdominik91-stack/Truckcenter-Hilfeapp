@@ -1,5 +1,5 @@
 // ==========================================================
-// Truckcenter Hilfecenter – FINAL + Debug
+// Truckcenter Hilfecenter – FINAL + Debug (mit Header-Normalisierung)
 // ==========================================================
 
 const CSV_URL =
@@ -16,6 +16,20 @@ const searchResultsEl = document.getElementById("searchResults");
 
 const STORAGE_KEY = "truckcenter-hilfe-steps-v-debug";
 let doneState = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+
+// ----------------------------------------------------------
+// Header-Normalisierung (z.B. "Kategorie Reihenfolge" -> "kategorie_reihenfolge")
+// ----------------------------------------------------------
+function normalizeHeaderName(h) {
+  return h
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[äÄ]/g, "ae")
+    .replace(/[öÖ]/g, "oe")
+    .replace(/[üÜ]/g, "ue")
+    .replace(/ß/g, "ss");
+}
 
 // ----------------------------------------------------------
 // 1. CSV parsen – Delimiter automatisch erkennen
@@ -38,8 +52,17 @@ function parseCSV(text) {
       ? ";"
       : ",";
 
-  const header = firstLine.split(delimiter).map(h => h.trim());
-  console.log("[Hilfecenter] Header:", header, "Delimiter:", delimiter);
+  const rawHeader = firstLine.split(delimiter).map(h => h.trim());
+  const header = rawHeader.map(normalizeHeaderName);
+
+  console.log(
+    "[Hilfecenter] Raw-Header:",
+    rawHeader,
+    "→ Normalized:",
+    header,
+    "Delimiter:",
+    delimiter
+  );
 
   const rows = lines.slice(1).map(line => {
     const parts = line.split(delimiter);
@@ -90,7 +113,7 @@ function buildData(parsed) {
     };
   });
 
-  // Wir filtern nur auf: kategorie + titel müssen da sein
+  // Nur Datensätze mit Kategorie + Titel
   const used = cleaned.filter(r => r.kategorie && r.titel);
   console.log(
     "[Hilfecenter] Verwendete Zeilen (kategorie + titel gesetzt):",
@@ -110,32 +133,34 @@ async function loadData() {
 
     if (!res.ok) {
       console.error("[Hilfecenter] CSV HTTP-Fehler:", res.status, res.statusText);
-      appEl.innerHTML =
-        '<div class="empty-hint">Fehler beim Laden des Hilfecenters (Status ' +
-        res.status +
-        '). Bitte CSV-Link und Freigabe prüfen.</div>';
+      if (appEl) {
+        appEl.innerHTML =
+          '<div class="empty-hint">Fehler beim Laden des Hilfecenters (Status ' +
+          res.status +
+          '). Bitte CSV-Link, Freigabe und gid prüfen.</div>';
+      }
       return;
     }
 
     const text = await res.text();
 
-    // Wenn du gar nichts siehst, siehst du hier wenigstens den Anfang der CSV
     console.log("[Hilfecenter] CSV-Preview:", text.slice(0, 200));
 
     const parsed = parseCSV(text);
     data = buildData(parsed);
 
     if (!data.length) {
-      // Debug-Ausgabe direkt im UI, damit du siehst, was reinkommt
-      appEl.innerHTML =
-        "<div class='empty-hint'>Das Sheet wurde geladen, aber es wurden keine Zeilen mit gefüllter " +
-        "Spalte 'kategorie' und 'titel' erkannt.<br><br>" +
-        "<strong>Header erkannt:</strong><br><pre>" +
-        parsed.header.join(" | ") +
-        "</pre><br>" +
-        "<strong>Erste Rohzeile:</strong><br><pre>" +
-        (parsed.rows[0] ? JSON.stringify(parsed.rows[0], null, 2) : "– keine –") +
-        "</pre></div>";
+      if (appEl) {
+        appEl.innerHTML =
+          "<div class='empty-hint'>Das Sheet wurde geladen, aber es wurden keine Zeilen mit gefüllter " +
+          "Spalte 'kategorie' und 'titel' erkannt.<br><br>" +
+          "<strong>Header (normalisiert):</strong><br><pre>" +
+          parsed.header.join(" | ") +
+          "</pre><br>" +
+          "<strong>Erste Rohzeile:</strong><br><pre>" +
+          (parsed.rows[0] ? JSON.stringify(parsed.rows[0], null, 2) : "– keine –") +
+          "</pre></div>";
+      }
       return;
     }
 
@@ -143,8 +168,10 @@ async function loadData() {
     renderEmptyMain();
   } catch (err) {
     console.error("[Hilfecenter] Fehler beim Laden:", err);
-    appEl.innerHTML =
-      '<div class="empty-hint">Fehler beim Laden des Hilfecenters. Bitte CSV-Freigabe und URL prüfen.</div>';
+    if (appEl) {
+      appEl.innerHTML =
+        '<div class="empty-hint">Fehler beim Laden des Hilfecenters. Bitte CSV-Freigabe und URL prüfen.</div>';
+    }
   }
 }
 
@@ -215,6 +242,7 @@ function renderCategories() {
 // 5. Leere Ansicht
 // ----------------------------------------------------------
 function renderEmptyMain() {
+  if (!appEl) return;
   appEl.innerHTML =
     '<div class="empty-hint">Wähle links eine Kategorie oder nutze die Suche, um eine Anleitung zu öffnen.</div>';
 }
@@ -229,6 +257,8 @@ function renderCategoryTopics(catName) {
       if (a.reihenfolge !== b.reihenfolge) return a.reihenfolge - b.reihenfolge;
       return a.titel.localeCompare(b.titel);
     });
+
+  if (!appEl) return;
 
   if (!topics.length) {
     appEl.innerHTML =
@@ -296,6 +326,8 @@ function renderCategoryTopics(catName) {
 // 7. Einzelnes Thema + Schritte
 // ----------------------------------------------------------
 function renderTopic(row) {
+  if (!appEl) return;
+
   const wrapper = document.createElement("div");
 
   const breadcrumb = document.createElement("div");
@@ -382,7 +414,7 @@ function toggleDone(id) {
 // ----------------------------------------------------------
 // 9. Suche
 // ----------------------------------------------------------
-if (searchInputEl) {
+if (searchInputEl && searchResultsEl) {
   searchInputEl.addEventListener("input", () => {
     const q = searchInputEl.value.toLowerCase().trim();
     if (!q || q.length < 2) {
