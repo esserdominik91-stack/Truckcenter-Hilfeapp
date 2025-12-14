@@ -1,5 +1,5 @@
 // ==========================================================
-// Truckcenter Hilfecenter – stabile Vollversion
+// Truckcenter Hilfecenter – stabile Vollversion (V5)
 // - Daten aus Google Sheet (CSV)
 // - Kategorien sortiert über kategorie_reihenfolge
 // - Themen sortiert über reihenfolge
@@ -20,10 +20,10 @@ const categoryListEl = document.getElementById("categoryList");
 const searchInputEl = document.getElementById("searchInput");
 const searchResultsEl = document.getElementById("searchResults");
 
-const STORAGE_KEY = "truckcenter-hilfe-steps-v4";
+const STORAGE_KEY = "truckcenter-hilfe-steps-v5";
 let doneState = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
 
-// ---------------- CSV-Parsen (robuster, mit Quotes) ----------------
+// ---------------- CSV-Parsen (robust, mit Quotes) ----------------
 
 function parseCSVLine(line) {
   const result = [];
@@ -34,7 +34,6 @@ function parseCSVLine(line) {
     const ch = line[i];
 
     if (ch === '"') {
-      // Doppelte Quotes im Feld
       if (inQuotes && line[i + 1] === '"') {
         current += '"';
         i++;
@@ -60,9 +59,7 @@ function parseCSV(text) {
 
   if (!lines.length) return [];
 
-  const headerCells = parseCSVLine(lines[0]).map(h =>
-    h.trim()
-  );
+  const headerCells = parseCSVLine(lines[0]).map(h => h.trim());
 
   const rows = lines.slice(1).map(line => {
     const cells = parseCSVLine(line);
@@ -71,17 +68,18 @@ function parseCSV(text) {
       obj[h] = (cells[idx] || "").trim();
     });
 
-    // Header können klein/groß sein – normalize auf lowercase keys zusätzlich
+    // zusätzlich lowercase-Map
     const lowerObj = {};
     for (const key in obj) {
       lowerObj[key.toLowerCase()] = obj[key];
     }
 
-    // Schritte aus allen Feldern, die schritt1..schritt20 entsprechen
     const steps = [];
     for (let i = 1; i <= 20; i++) {
-      const key1 = "schritt" + i;
-      const val = lowerObj[key1];
+      const key = "schritt" + i;
+      const val =
+        lowerObj[key] ||
+        lowerObj[key.toLowerCase()];
       if (val && val.trim() !== "") {
         steps.push({ num: i, text: val.trim() });
       }
@@ -91,8 +89,12 @@ function parseCSV(text) {
     const aktivRaw = (lowerObj["aktiv"] || "").toLowerCase();
     const highlightRaw = (lowerObj["highlight"] || "").toLowerCase();
 
-    const kategorie = lowerObj["kategorie"] || "";
-    const titel = lowerObj["titel"] || lowerObj["thema"] || "";
+    const kategorie =
+      lowerObj["kategorie"] || lowerObj["kategorie "] || "";
+    const titel =
+      lowerObj["titel"] ||
+      lowerObj["thema"] ||
+      "";
 
     return {
       kategorie,
@@ -110,15 +112,13 @@ function parseCSV(text) {
     };
   });
 
-  // Filter auf sinnvolle Zeilen
-  return rows.filter(
-    r =>
-      r.kategorie &&
-      r.titel &&
-      r.steps &&
-      r.steps.length > 0 &&
-      r.aktiv
-  );
+  // WICHTIG: NICHT MEHR ALLES WEGFILTERN – nur Zeilen ohne Kategorie/Titel fliegen raus
+  const cleaned = rows.filter(r => r.kategorie && r.titel);
+
+  console.log("[Hilfecenter] CSV-Zeilen gesamt:", rows.length);
+  console.log("[Hilfecenter] Verwendete Zeilen:", cleaned.length);
+
+  return cleaned;
 }
 
 // ---------------- Laden & Initialisieren ----------------
@@ -131,6 +131,13 @@ async function loadData() {
     }
     const text = await res.text();
     data = parseCSV(text);
+
+    if (!data.length) {
+      appEl.innerHTML =
+        '<div class="empty-hint">Es wurden keine Datensätze aus dem Sheet gelesen. Bitte prüfe: 1) Freigabe, 2) Kopfzeile, 3) ob mindestens Kategorie + Titel pro Zeile vorhanden sind.</div>';
+      return;
+    }
+
     renderCategories();
     renderEmptyMain();
   } catch (err) {
@@ -151,7 +158,6 @@ function renderCategories() {
     return;
   }
 
-  // Alle Kategorien + Sortierung
   const categories = [...new Set(data.map(r => r.kategorie))];
 
   const ordered = categories
@@ -378,11 +384,7 @@ searchInputEl.addEventListener("input", () => {
     let match = false;
     if (row.titel.toLowerCase().includes(q)) match = true;
     if (row.inhalt && row.inhalt.toLowerCase().includes(q)) match = true;
-    if (
-      row.steps.some(s =>
-        s.text.toLowerCase().includes(q)
-      )
-    ) {
+    if (row.steps.some(s => s.text.toLowerCase().includes(q))) {
       match = true;
     }
 
