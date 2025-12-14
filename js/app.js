@@ -1,3 +1,6 @@
+console.log("Truckcenter-Hilfecenter JS IST GELADEN");
+window.TRUCKCENTER_JS_TEST = "OK";
+
 // ==========================================================
 // Truckcenter Hilfecenter – FINAL + Debug (mit Header-Normalisierung)
 // ==========================================================
