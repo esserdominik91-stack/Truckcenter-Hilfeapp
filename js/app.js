@@ -1,13 +1,11 @@
 // ==========================================================
-// Truckcenter Hilfecenter – stabile Vollversion (V5)
-// - Daten aus Google Sheet (CSV)
-// - Kategorien sortiert über kategorie_reihenfolge
-// - Themen sortiert über reihenfolge
-// - Schritte aus schritt1..schritt20
-// - aktiv / highlight
-// - Suche + Done-Status
+// Truckcenter Hilfecenter – Minimal, aber zuverlässig
+// Liest direkt dein Sheet:
+// kategorie, kategorie_reihenfolge, titel, inhalt,
+// schritt1..schritt20, reihenfolge, aktiv, highlight
 // ==========================================================
 
+// WICHTIG: Nur HIER ggf. gid anpassen, falls dein Tab nicht der erste ist
 const CSV_URL =
   "https://docs.google.com/spreadsheets/d/17Uc_pfVj4d2oPv45HwTaWTeYVHt2dzLaSpk5kziJy1w/export?format=csv&gid=0";
 
@@ -20,135 +18,124 @@ const categoryListEl = document.getElementById("categoryList");
 const searchInputEl = document.getElementById("searchInput");
 const searchResultsEl = document.getElementById("searchResults");
 
-const STORAGE_KEY = "truckcenter-hilfe-steps-v5";
+const STORAGE_KEY = "truckcenter-hilfe-steps-v6";
 let doneState = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
 
-// ---------------- CSV-Parsen (robust, mit Quotes) ----------------
-
-function parseCSVLine(line) {
-  const result = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (ch === "," && !inQuotes) {
-      result.push(current);
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current);
-  return result;
-}
-
-function parseCSV(text) {
+// ----------------------------------------------------------
+// 1. CSV sehr einfach parsen (split(",")) – wie früher
+// ----------------------------------------------------------
+function parseCSVRaw(text) {
   const lines = text
     .split("\n")
     .map(l => l.replace(/\r$/, ""))
     .filter(l => l.trim().length > 0);
 
-  if (!lines.length) return [];
+  if (lines.length === 0) {
+    console.warn("[Hilfecenter] Keine Zeilen im CSV");
+    return [];
+  }
 
-  const headerCells = parseCSVLine(lines[0]).map(h => h.trim());
+  const header = lines[0].split(",").map(h => h.trim());
+  console.log("[Hilfecenter] Header:", header);
 
-  const rows = lines.slice(1).map(line => {
-    const cells = parseCSVLine(line);
+  const rows = lines.slice(1).map((line, idx) => {
+    const parts = line.split(",");
     const obj = {};
-    headerCells.forEach((h, idx) => {
-      obj[h] = (cells[idx] || "").trim();
+
+    header.forEach((h, i) => {
+      obj[h] = (parts[i] || "").trim();
     });
 
-    // zusätzlich lowercase-Map
-    const lowerObj = {};
-    for (const key in obj) {
-      lowerObj[key.toLowerCase()] = obj[key];
-    }
-
+    // Schritte einsammeln
     const steps = [];
     for (let i = 1; i <= 20; i++) {
       const key = "schritt" + i;
-      const val =
-        lowerObj[key] ||
-        lowerObj[key.toLowerCase()];
-      if (val && val.trim() !== "") {
-        steps.push({ num: i, text: val.trim() });
+      if (obj[key] && obj[key].trim() !== "") {
+        steps.push({ num: i, text: obj[key].trim() });
       }
     }
-    steps.sort((a, b) => a.num - b.num);
 
-    const aktivRaw = (lowerObj["aktiv"] || "").toLowerCase();
-    const highlightRaw = (lowerObj["highlight"] || "").toLowerCase();
+    // aktiv / highlight
+    const aktivRaw = (obj["aktiv"] || "").toLowerCase();
+    const highlightRaw = (obj["highlight"] || "").toLowerCase();
 
-    const kategorie =
-      lowerObj["kategorie"] || lowerObj["kategorie "] || "";
-    const titel =
-      lowerObj["titel"] ||
-      lowerObj["thema"] ||
-      "";
-
-    return {
-      kategorie,
-      kategorieReihenfolge: lowerObj["kategorie_reihenfolge"]
-        ? Number(lowerObj["kategorie_reihenfolge"])
+    const row = {
+      kategorie: obj["kategorie"] || "",
+      kategorieReihenfolge: obj["kategorie_reihenfolge"]
+        ? Number(obj["kategorie_reihenfolge"])
         : 9999,
-      titel,
-      inhalt: lowerObj["inhalt"] || "",
-      reihenfolge: lowerObj["reihenfolge"]
-        ? Number(lowerObj["reihenfolge"])
+      titel: obj["titel"] || "",
+      inhalt: obj["inhalt"] || "",
+      reihenfolge: obj["reihenfolge"]
+        ? Number(obj["reihenfolge"])
         : 9999,
       aktiv: aktivRaw === "" || aktivRaw === "ja" || aktivRaw === "1",
       highlight: highlightRaw === "ja" || highlightRaw === "1",
       steps
     };
+
+    return row;
   });
 
-  // WICHTIG: NICHT MEHR ALLES WEGFILTERN – nur Zeilen ohne Kategorie/Titel fliegen raus
-  const cleaned = rows.filter(r => r.kategorie && r.titel);
+  console.log("[Hilfecenter] CSV-Zeilen gesamt (inkl. ggf. leer):", rows.length);
+  return rows;
+}
 
-  console.log("[Hilfecenter] CSV-Zeilen gesamt:", rows.length);
-  console.log("[Hilfecenter] Verwendete Zeilen:", cleaned.length);
+// ----------------------------------------------------------
+// 2. Aus Roh-Daten sinnvolle Datensätze machen
+//    -> Nur kategorie + titel müssen befüllt sein
+// ----------------------------------------------------------
+function buildData(text) {
+  const rows = parseCSVRaw(text);
+
+  const cleaned = rows.filter(r => r.kategorie && r.titel);
+  console.log("[Hilfecenter] Verwendete Zeilen (kategorie + titel gesetzt):", cleaned.length);
+
+  if (cleaned.length === 0) {
+    console.warn("[Hilfecenter] Es wurde keine Zeile mit kategorie + titel gefunden.");
+  }
 
   return cleaned;
 }
 
-// ---------------- Laden & Initialisieren ----------------
-
+// ----------------------------------------------------------
+// 3. Laden
+// ----------------------------------------------------------
 async function loadData() {
   try {
+    console.log("[Hilfecenter] Lade CSV:", CSV_URL);
     const res = await fetch(CSV_URL);
+
     if (!res.ok) {
-      throw new Error("CSV konnte nicht geladen werden: " + res.status);
+      console.error("[Hilfecenter] CSV HTTP-Fehler:", res.status, res.statusText);
+      appEl.innerHTML =
+        '<div class="empty-hint">Fehler beim Laden des Hilfecenters (Status ' +
+        res.status +
+        '). Bitte prüfe: 1) Freigabe des Google Sheets, 2) CSV-Link.</div>';
+      return;
     }
+
     const text = await res.text();
-    data = parseCSV(text);
+    data = buildData(text);
 
     if (!data.length) {
       appEl.innerHTML =
-        '<div class="empty-hint">Es wurden keine Datensätze aus dem Sheet gelesen. Bitte prüfe: 1) Freigabe, 2) Kopfzeile, 3) ob mindestens Kategorie + Titel pro Zeile vorhanden sind.</div>';
+        '<div class="empty-hint">Das Sheet wurde geladen, aber es wurden keine Datensätze mit gefüllter „kategorie“ und „titel“-Spalte gefunden.</div>';
       return;
     }
 
     renderCategories();
     renderEmptyMain();
   } catch (err) {
-    console.error(err);
+    console.error("[Hilfecenter] Fehler beim Laden:", err);
     appEl.innerHTML =
       '<div class="empty-hint">Fehler beim Laden des Hilfecenters. Bitte CSV-Freigabe und URL prüfen.</div>';
   }
 }
 
-// ---------------- Kategorien ----------------
-
+// ----------------------------------------------------------
+// 4. Kategorien
+// ----------------------------------------------------------
 function renderCategories() {
   categoryListEl.innerHTML = "";
 
@@ -204,15 +191,17 @@ function renderCategories() {
   });
 }
 
-// ---------------- Main-Bereich: leere Ansicht ----------------
-
+// ----------------------------------------------------------
+// 5. Leere Ansicht
+// ----------------------------------------------------------
 function renderEmptyMain() {
   appEl.innerHTML =
     '<div class="empty-hint">Wähle links eine Kategorie oder nutze die Suche, um eine Anleitung zu öffnen.</div>';
 }
 
-// ---------------- Themen innerhalb einer Kategorie ----------------
-
+// ----------------------------------------------------------
+// 6. Themen in einer Kategorie
+// ----------------------------------------------------------
 function renderCategoryTopics(catName) {
   const topics = data
     .filter(r => r.kategorie === catName)
@@ -283,8 +272,9 @@ function renderCategoryTopics(catName) {
   }
 }
 
-// ---------------- Einzelnes Thema + Schritte ----------------
-
+// ----------------------------------------------------------
+// 7. Einzelnes Thema + Schritte
+// ----------------------------------------------------------
 function renderTopic(row) {
   const wrapper = document.createElement("div");
 
@@ -327,7 +317,7 @@ function renderTopic(row) {
 
     const span = document.createElement("span");
     span.className = "txt" + (done ? " done" : "");
-    span.textContent = step.num + ". " + step.text;
+    span.textContent = `${step.num}. ${step.text}`;
 
     rowDiv.appendChild(checkbox);
     rowDiv.appendChild(span);
@@ -361,15 +351,17 @@ function renderTopic(row) {
   }
 }
 
-// ---------------- Done-State ----------------
-
+// ----------------------------------------------------------
+// 8. Done-State
+// ----------------------------------------------------------
 function toggleDone(id) {
   doneState[id] = !doneState[id];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(doneState));
 }
 
-// ---------------- Suche ----------------
-
+// ----------------------------------------------------------
+// 9. Suche
+// ----------------------------------------------------------
 searchInputEl.addEventListener("input", () => {
   const q = searchInputEl.value.toLowerCase().trim();
   if (!q || q.length < 2) {
@@ -430,6 +422,7 @@ searchInputEl.addEventListener("input", () => {
   searchResultsEl.style.display = "block";
 });
 
-// ---------------- Start ----------------
-
+// ----------------------------------------------------------
+// 10. Start
+// ----------------------------------------------------------
 loadData();
