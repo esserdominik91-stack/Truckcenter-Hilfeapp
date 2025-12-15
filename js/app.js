@@ -1,7 +1,9 @@
 // ==============================================
 // Truckcenter Hilfecenter – Sheet-only Version
-// 3-Stufen-System: Kategorie → Thema → Schritte
-// Datenquelle: EIN Google Sheet (CSV-Export)
+// UI: Einfache Problem-Kacheln links,
+// rechts Detail + Fortschritt + Schritte
+// Kachel-Aufbau:
+//   Kategorie → Unterkategorie → Titel → Inhalt
 // ==============================================
 
 const CSV_URL =
@@ -10,9 +12,9 @@ const CSV_URL =
 const STORAGE_KEY = "truckcenter-hilfe-steps-done-v2";
 
 let rows = [];
-let categories = []; // { name, order, topicCount }
-let topics = []; // alle Themen
-let topicsByCategory = new Map(); // catName -> [topicObj]
+let categories = [];
+let topics = [];
+let topicsByCategory = new Map();
 
 let currentCategory = null;
 let currentTopic = null;
@@ -108,7 +110,7 @@ function saveDoneSteps() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(doneSteps));
   } catch {
-    // Ignorieren (z. B. Private Mode)
+    // Ignorieren
   }
 }
 
@@ -148,6 +150,7 @@ function buildModelFromRows(allRows) {
     "kurzbeschreibung",
     "description",
     "info",
+    "inhalt",
   ]);
   const idxCatOrder = idx([
     "kategorie_reihenfolge",
@@ -158,6 +161,7 @@ function buildModelFromRows(allRows) {
     "thema_reihenfolge",
     "topic_order",
     "sort",
+    "reihenfolge",
   ]);
 
   if (idxCategory === -1 || idxTopic === -1) {
@@ -181,7 +185,7 @@ function buildModelFromRows(allRows) {
     const row = allRows[r];
     if (!row || row.length === 0) continue;
 
-    const catName = (row[idxCategory] || "Allgemein").trim();
+    const catName = (row[idxCategory] || "Allgemeines").trim();
     const topicName = (row[idxTopic] || "").trim();
     if (!topicName) continue;
 
@@ -213,7 +217,7 @@ function buildModelFromRows(allRows) {
     const topicObj = {
       id: `row-${r}`,
       category: catName,
-      topic: topicName,
+      topic: topicName,        // = Titel
       subcategory: subName,
       description: desc,
       catOrder,
@@ -257,332 +261,17 @@ function buildModelFromRows(allRows) {
 }
 
 // ---------------------------
-// Render – linkes Panel
+// UI-Helfer
 // ---------------------------
-function renderCategories() {
-  currentCategory = null;
-  currentTopic = null;
-  categoriesViewEl.style.display = "grid";
-  topicsViewEl.style.display = "none";
-  searchResultsViewEl.style.display = "none";
-  searchHintEl.textContent = "";
 
-  leftPanelTitleEl.textContent = "Kategorien";
-  leftPanelSubtitleEl.textContent =
-    "Wähle eine Kategorie oder nutze die Suche.";
-  leftCounterEl.textContent =
-    categories.length === 1
-      ? "1 Kategorie"
-      : `${categories.length} Kategorien`;
-
-  breadcrumbsEl.innerHTML = "";
-
-  categoriesViewEl.innerHTML = "";
-  if (!categories.length) {
-    categoriesViewEl.innerHTML =
-      '<div class="empty">Keine Kategorien gefunden. Bitte Sheet prüfen.</div>';
-    return;
-  }
-
-  categories.forEach((cat) => {
-    const topicsInCat = topicsByCategory.get(cat.name) || [];
-    const doneCount = topicsInCat.reduce(
-      (acc, t) => acc + countDoneStepsForTopic(t),
-      0
-    );
-    const totalSteps = topicsInCat.reduce(
-      (acc, t) => acc + t.steps.length,
-      0
-    );
-
-    const card = document.createElement("div");
-    card.className = "card";
-
-    card.addEventListener("click", () => {
-      renderTopicsForCategory(cat.name);
-    });
-
-    const header = document.createElement("div");
-    header.className = "card-header";
-
-    const left = document.createElement("div");
-    const title = document.createElement("div");
-    title.className = "card-title";
-    title.textContent = cat.name;
-
-    const meta = document.createElement("div");
-    meta.className = "card-meta";
-    meta.textContent = `${topicsInCat.length} Themen`;
-
-    left.appendChild(title);
-    left.appendChild(meta);
-
-    const right = document.createElement("div");
-    right.style.display = "flex";
-    right.style.flexDirection = "column";
-    right.style.alignItems = "flex-end";
-    right.style.gap = "4px";
-
-    const badge = document.createElement("div");
-    badge.className = "badge-small";
-    badge.textContent = `Prio ${cat.order === 9999 ? "∞" : cat.order}`;
-
-    right.appendChild(badge);
-
-    if (totalSteps > 0) {
-      const pill = document.createElement("div");
-      pill.className = "dot-pill";
-
-      const dot = document.createElement("span");
-      pill.appendChild(dot);
-
-      const txt = document.createElement("span");
-      txt.textContent = `${doneCount}/${totalSteps} Schritte`;
-      pill.appendChild(txt);
-
-      right.appendChild(pill);
-    }
-
-    header.appendChild(left);
-    header.appendChild(right);
-
-    card.appendChild(header);
-    categoriesViewEl.appendChild(card);
-  });
-
-  btnBackToCategories.style.display = "none";
-  btnBackToTopics.style.display = "none";
-  btnResetCurrent.style.display = "none";
-
-  renderDetailEmpty();
-}
-
-function renderTopicsForCategory(catName) {
-  currentCategory = catName;
-  currentTopic = null;
-  categoriesViewEl.style.display = "none";
-  topicsViewEl.style.display = "flex";
-  topicsViewEl.innerHTML = "";
-  searchResultsViewEl.style.display = "none";
-  searchHintEl.textContent = "";
-
-  leftPanelTitleEl.textContent = "Themen";
-  leftPanelSubtitleEl.textContent = `Kategorie: ${catName}`;
-  const list = topicsByCategory.get(catName) || [];
-  leftCounterEl.textContent =
-    list.length === 1 ? "1 Thema" : `${list.length} Themen`;
-
-  breadcrumbsEl.innerHTML = "";
-  const homeBtn = document.createElement("button");
-  homeBtn.textContent = "Kategorien";
-  homeBtn.addEventListener("click", () => renderCategories());
-
-  const sep = document.createElement("span");
-  sep.textContent = "›";
-
-  const catStrong = document.createElement("strong");
-  catStrong.textContent = catName;
-
-  breadcrumbsEl.appendChild(homeBtn);
-  breadcrumbsEl.appendChild(sep);
-  breadcrumbsEl.appendChild(catStrong);
-
-  if (!list.length) {
-    topicsViewEl.innerHTML =
-      '<div class="empty">In dieser Kategorie sind noch keine Themen angelegt.</div>';
-  } else {
-    list.forEach((t) => {
-      const row = document.createElement("div");
-      row.className = "topic-row";
-      row.addEventListener("click", () => {
-        renderTopicDetail(t, { fromSearch: false });
-      });
-
-      const main = document.createElement("div");
-      main.className = "topic-main";
-
-      const title = document.createElement("div");
-      title.className = "topic-title";
-      title.textContent = t.topic;
-
-      const sub = document.createElement("div");
-      sub.className = "topic-sub";
-      sub.textContent = t.subcategory || "Ohne Unterkategorie";
-
-      main.appendChild(title);
-      main.appendChild(sub);
-
-      const meta = document.createElement("div");
-      meta.className = "topic-meta";
-
-      const stepsInfo = document.createElement("span");
-      stepsInfo.className = "topic-steps";
-      stepsInfo.textContent = `${t.steps.length || 0} Schritte`;
-
-      const progressPill = document.createElement("div");
-      progressPill.className = "topic-progress-pill";
-
-      const bar = document.createElement("span");
-      bar.className = "bar";
-
-      const barInner = document.createElement("span");
-      barInner.className = "bar-inner";
-
-      const { doneCount, total } = getProgressForTopic(t);
-      const ratio = total > 0 ? doneCount / total : 0;
-      barInner.style.transform = `scaleX(${ratio})`;
-
-      bar.appendChild(barInner);
-
-      const txt = document.createElement("span");
-      txt.textContent =
-        total > 0 ? `${Math.round(ratio * 100)}%` : "0%";
-
-      progressPill.appendChild(bar);
-      progressPill.appendChild(txt);
-
-      meta.appendChild(stepsInfo);
-      meta.appendChild(progressPill);
-
-      row.appendChild(main);
-      row.appendChild(meta);
-
-      topicsViewEl.appendChild(row);
-    });
-  }
-
-  btnBackToCategories.style.display = "inline-flex";
-  btnBackToTopics.style.display = "inline-flex";
-  btnResetCurrent.style.display = "none";
-
-  renderDetailEmpty();
-}
-
-function renderSearchResults(matches, query) {
-  currentCategory = null;
-  currentTopic = null;
-  categoriesViewEl.style.display = "none";
-  topicsViewEl.style.display = "none";
-  searchResultsViewEl.style.display = "flex";
-  searchResultsViewEl.innerHTML = "";
-
-  leftPanelTitleEl.textContent = "Suchergebnisse";
-  leftPanelSubtitleEl.textContent = query
-    ? `Gefiltert nach: "${query}"`
-    : "Suche über alle Themen";
-  leftCounterEl.textContent =
-    matches.length === 1
-      ? "1 Treffer"
-      : `${matches.length} Treffer`;
-
-  breadcrumbsEl.innerHTML = "";
-  const homeBtn = document.createElement("button");
-  homeBtn.textContent = "Kategorien";
-  homeBtn.addEventListener("click", () => {
-    searchInputEl.value = "";
-    renderCategories();
-  });
-
-  breadcrumbsEl.appendChild(homeBtn);
-
-  if (!query || query.length < 2) {
-    searchResultsViewEl.innerHTML =
-      '<div class="empty">Mindestens 2 Zeichen eingeben, um zu suchen.</div>';
-    searchHintEl.textContent =
-      "Hinweis: Es wird in Kategorie, Thema, Unterkategorie und Schritten gesucht.";
-    return;
-  }
-
-  if (!matches.length) {
-    searchResultsViewEl.innerHTML =
-      '<div class="empty">Keine Treffer. Suche anpassen oder Kategorie direkt wählen.</div>';
-    searchHintEl.textContent = "";
-    return;
-  }
-
-  searchHintEl.textContent =
-    "Treffer aus allen Kategorien. Klick auf ein Thema öffnet direkt die Schritte.";
-
-  matches.forEach((t) => {
-    const row = document.createElement("div");
-    row.className = "topic-row";
-    row.addEventListener("click", () => {
-      renderTopicDetail(t, { fromSearch: true });
-    });
-
-    const main = document.createElement("div");
-    main.className = "topic-main";
-
-    const title = document.createElement("div");
-    title.className = "topic-title";
-    title.textContent = t.topic;
-
-    const sub = document.createElement("div");
-    sub.className = "topic-sub";
-    sub.textContent = `${t.category} · ${
-      t.subcategory || "Ohne Unterkategorie"
-    }`;
-
-    main.appendChild(title);
-    main.appendChild(sub);
-
-    const meta = document.createElement("div");
-    meta.className = "topic-meta";
-
-    const stepsInfo = document.createElement("span");
-    stepsInfo.className = "topic-steps";
-    stepsInfo.textContent = `${t.steps.length || 0} Schritte`;
-
-    const { doneCount, total } = getProgressForTopic(t);
-    const ratio = total > 0 ? doneCount / total : 0;
-
-    const progressPill = document.createElement("div");
-    progressPill.className = "topic-progress-pill";
-
-    const bar = document.createElement("span");
-    bar.className = "bar";
-
-    const barInner = document.createElement("span");
-    barInner.className = "bar-inner";
-    barInner.style.transform = `scaleX(${ratio})`;
-
-    bar.appendChild(barInner);
-
-    const txt = document.createElement("span");
-    txt.textContent =
-      total > 0 ? `${Math.round(ratio * 100)}%` : "0%";
-
-    progressPill.appendChild(bar);
-    progressPill.appendChild(txt);
-
-    meta.appendChild(stepsInfo);
-    meta.appendChild(progressPill);
-
-    row.appendChild(main);
-    row.appendChild(meta);
-
-    searchResultsViewEl.appendChild(row);
-  });
-
-  btnBackToCategories.style.display = "inline-flex";
-  btnBackToTopics.style.display = "none";
-  btnResetCurrent.style.display = "none";
-
-  renderDetailEmpty();
-}
-
-// ---------------------------
-// Detail rechts
-// ---------------------------
-function renderDetailEmpty() {
-  currentTopic = null;
-  detailTitleEl.textContent = "Kein Thema ausgewählt";
-  detailMetaEl.textContent = "";
-  detailDescEl.textContent =
-    "Wähle links eine Kategorie und anschließend ein Thema.";
-  stepsListEl.innerHTML = "";
-  detailEmptyEl.style.display = "block";
-  progressRowEl.style.display = "none";
+function getIconForTopic(t) {
+  const cat = (t.category || "").toLowerCase();
+  const sub = (t.subcategory || "").toLowerCase();
+
+  if (sub.includes("strom") || cat.includes("strom")) return "⚡";
+  if (sub.includes("wasser") || cat.includes("wasser")) return "💧";
+  if (cat.includes("allgemein")) return "ℹ️";
+  return "□";
 }
 
 function countDoneStepsForTopic(topic) {
@@ -600,40 +289,248 @@ function getProgressForTopic(topic) {
   return { doneCount, total };
 }
 
+// Kachel-Aufbau: Kategorie → Unterkategorie → Titel → Inhalt
+function createTopicCard(topic) {
+  const { doneCount, total } = getProgressForTopic(topic);
+  const ratio = total > 0 ? doneCount / total : 0;
+
+  const card = document.createElement("div");
+  card.className = "card";
+
+  card.addEventListener("click", () => {
+    renderTopicDetail(topic, { fromSearch: false });
+  });
+
+  const header = document.createElement("div");
+  header.className = "card-header";
+
+  // LINKER Bereich: Texte
+  const left = document.createElement("div");
+  left.style.display = "flex";
+  left.style.flexDirection = "column";
+  left.style.gap = "3px";
+  left.style.minWidth = "0";
+
+  // 1) Kategorie (Hauptthema)
+  const catLabel = document.createElement("div");
+  catLabel.style.fontSize = "11px";
+  catLabel.style.textTransform = "uppercase";
+  catLabel.style.letterSpacing = "0.12em";
+  catLabel.style.color = "#9ca3af";
+  catLabel.textContent = topic.category || "Allgemeines";
+
+  // 2) Unterkategorie (falls vorhanden)
+  const subLabel = document.createElement("div");
+  subLabel.style.fontSize = "12px";
+  subLabel.style.color = "#e5e7eb";
+  subLabel.style.fontWeight = "500";
+  subLabel.textContent = topic.subcategory || "Ohne Unterkategorie";
+
+  // 3) Titel (Thema)
+  const titleLabel = document.createElement("div");
+  titleLabel.style.fontSize = "13px";
+  titleLabel.style.fontWeight = "600";
+  titleLabel.style.display = "flex";
+  titleLabel.style.alignItems = "center";
+  titleLabel.style.gap = "6px";
+
+  const iconSpan = document.createElement("span");
+  iconSpan.textContent = getIconForTopic(topic);
+
+  const titleText = document.createElement("span");
+  titleText.textContent = topic.topic;
+
+  titleLabel.appendChild(iconSpan);
+  titleLabel.appendChild(titleText);
+
+  // 4) Inhalt / Beschreibung (Kurztext)
+  const descLabel = document.createElement("div");
+  descLabel.style.fontSize = "11px";
+  descLabel.style.color = "#9ca3af";
+  descLabel.style.marginTop = "2px";
+  descLabel.style.overflow = "hidden";
+  descLabel.style.textOverflow = "ellipsis";
+  descLabel.style.display = "-webkit-box";
+  descLabel.style.webkitLineClamp = "2";
+  descLabel.style.webkitBoxOrient = "vertical";
+  descLabel.textContent =
+    topic.description ||
+    "Hinweise und Schritte zur Lösung dieses Themas.";
+
+  left.appendChild(catLabel);
+  left.appendChild(subLabel);
+  left.appendChild(titleLabel);
+  left.appendChild(descLabel);
+
+  // RECHTS: Fortschritt
+  const right = document.createElement("div");
+  right.style.display = "flex";
+  right.style.flexDirection = "column";
+  right.style.alignItems = "flex-end";
+  right.style.gap = "4px";
+
+  if (total > 0) {
+    const progressPill = document.createElement("div");
+    progressPill.className = "topic-progress-pill";
+
+    const bar = document.createElement("span");
+    bar.className = "bar";
+
+    const barInner = document.createElement("span");
+    barInner.className = "bar-inner";
+    barInner.style.transform = `scaleX(${ratio})`;
+
+    bar.appendChild(barInner);
+
+    const txt = document.createElement("span");
+    txt.textContent = `${Math.round(ratio * 100)}%`;
+
+    progressPill.appendChild(bar);
+    progressPill.appendChild(txt);
+
+    right.appendChild(progressPill);
+  }
+
+  header.appendChild(left);
+  header.appendChild(right);
+
+  card.appendChild(header);
+  return card;
+}
+
+// ---------------------------
+// Linkes Panel: Kachel-Übersicht
+// ---------------------------
+function renderOverview(list, modeLabel, subtitle) {
+  currentCategory = null;
+  currentTopic = null;
+
+  categoriesViewEl.style.display = "grid";
+  topicsViewEl.style.display = "none";
+  searchResultsViewEl.style.display = "none";
+
+  leftPanelTitleEl.textContent = modeLabel || "Themen & Probleme";
+  leftPanelSubtitleEl.textContent =
+    subtitle ||
+    "Wähle ein Hauptthema (Kategorie) mit Unterkategorie und Titel.";
+  leftCounterEl.textContent =
+    list.length === 1 ? "1 Thema" : `${list.length} Themen`;
+
+  breadcrumbsEl.innerHTML = "";
+  searchHintEl.textContent = "";
+
+  categoriesViewEl.innerHTML = "";
+  if (!list.length) {
+    categoriesViewEl.innerHTML =
+      '<div class="empty">Keine Themen gefunden. Bitte Sheet prüfen.</div>';
+    return;
+  }
+
+  list.forEach((t) => {
+    categoriesViewEl.appendChild(createTopicCard(t));
+  });
+
+  btnBackToCategories.style.display = "none";
+  btnBackToTopics.style.display = "none";
+  btnResetCurrent.style.display = "none";
+
+  renderDetailEmpty();
+}
+
+function renderCategories() {
+  renderOverview(
+    topics,
+    "Themen & Probleme",
+    "1. Kategorie · 2. Unterkategorie · 3. Titel lesen – dann tippen, um die Schritte zu sehen."
+  );
+}
+
+// ---------------------------
+// Suche
+// ---------------------------
+function renderSearchResults(matches, query) {
+  if (!query || query.length < 2) {
+    renderOverview(
+      topics,
+      "Themen & Probleme",
+      "Mindestens 2 Zeichen eingeben, um zu suchen."
+    );
+    searchHintEl.textContent =
+      "Hinweis: Es wird in Kategorie, Titel, Unterkategorie und Schritten gesucht.";
+    return;
+  }
+
+  if (!matches.length) {
+    renderOverview(
+      [],
+      "Suchergebnisse",
+      `Keine Treffer für "${query}".`
+    );
+    searchHintEl.textContent = "";
+    return;
+  }
+
+  renderOverview(
+    matches,
+    "Suchergebnisse",
+    `Gefiltert nach: "${query}".`
+  );
+  searchHintEl.textContent =
+    "Treffer aus allen Themen. Tippe auf eine Kachel, um die Schritte zu sehen.";
+}
+
+function handleSearchInput() {
+  const q = searchInputEl.value.trim();
+  if (!q) {
+    renderCategories();
+    return;
+  }
+
+  const qLower = q.toLowerCase();
+  const matches = topics.filter((t) => {
+    if (
+      t.topic.toLowerCase().includes(qLower) ||
+      t.category.toLowerCase().includes(qLower) ||
+      (t.subcategory && t.subcategory.toLowerCase().includes(qLower))
+    ) {
+      return true;
+    }
+    return t.steps.some((s) =>
+      s.text.toLowerCase().includes(qLower)
+    );
+  });
+
+  renderSearchResults(matches, q);
+}
+
+// ---------------------------
+// Detail rechts
+// ---------------------------
+function renderDetailEmpty() {
+  currentTopic = null;
+  detailTitleEl.textContent = "Kein Thema ausgewählt";
+  detailMetaEl.textContent = "";
+  detailDescEl.textContent =
+    "Wähle links ein Thema aus, um die Schritt-für-Schritt-Anleitung zu sehen.";
+  stepsListEl.innerHTML = "";
+  detailEmptyEl.style.display = "block";
+  progressRowEl.style.display = "none";
+}
+
 function renderTopicDetail(topic, opts = {}) {
   currentTopic = topic;
   currentCategory = topic.category;
 
   breadcrumbsEl.innerHTML = "";
   const homeBtn = document.createElement("button");
-  homeBtn.textContent = "Kategorien";
+  homeBtn.textContent = "Übersicht";
   homeBtn.addEventListener("click", () => renderCategories());
-
-  const sep1 = document.createElement("span");
-  sep1.textContent = "›";
-
-  const catBtn = document.createElement("button");
-  catBtn.textContent = topic.category;
-  catBtn.addEventListener("click", () =>
-    renderTopicsForCategory(topic.category)
-  );
-
-  const sep2 = document.createElement("span");
-  sep2.textContent = "›";
-
-  const topicStrong = document.createElement("strong");
-  topicStrong.textContent = topic.topic;
-
   breadcrumbsEl.appendChild(homeBtn);
-  breadcrumbsEl.appendChild(sep1);
-  breadcrumbsEl.appendChild(catBtn);
-  breadcrumbsEl.appendChild(sep2);
-  breadcrumbsEl.appendChild(topicStrong);
 
-  detailTitleEl.textContent = topic.topic;
+  detailTitleEl.textContent = `${getIconForTopic(topic)} ${topic.topic}`;
 
   const metaParts = [];
-  metaParts.push(`Kategorie: ${topic.category}`);
+  if (topic.category) metaParts.push(`Kategorie: ${topic.category}`);
   if (topic.subcategory) metaParts.push(`Unterkategorie: ${topic.subcategory}`);
   metaParts.push(`${topic.steps.length} Schritte`);
 
@@ -691,20 +588,9 @@ function renderTopicDetail(topic, opts = {}) {
   updateDetailProgress(topic);
 
   btnBackToCategories.style.display = "inline-flex";
-  btnBackToTopics.style.display = opts.fromSearch ? "none" : "inline-flex";
+  btnBackToTopics.style.display = "none";
   btnResetCurrent.style.display =
     topic.steps.length > 0 ? "inline-flex" : "none";
-
-  if (!opts.fromSearch) {
-    categoriesViewEl.style.display = "none";
-    topicsViewEl.style.display = "flex";
-    searchResultsViewEl.style.display = "none";
-    searchHintEl.textContent = "";
-  } else {
-    categoriesViewEl.style.display = "none";
-    topicsViewEl.style.display = "none";
-    searchResultsViewEl.style.display = "flex";
-  }
 }
 
 function updateDetailProgress(topic) {
@@ -725,33 +611,6 @@ function updateDetailProgress(topic) {
 }
 
 // ---------------------------
-// Suche
-// ---------------------------
-function handleSearchInput() {
-  const q = searchInputEl.value.trim();
-  if (!q) {
-    renderCategories();
-    return;
-  }
-
-  const qLower = q.toLowerCase();
-  const matches = topics.filter((t) => {
-    if (
-      t.topic.toLowerCase().includes(qLower) ||
-      t.category.toLowerCase().includes(qLower) ||
-      (t.subcategory && t.subcategory.toLowerCase().includes(qLower))
-    ) {
-      return true;
-    }
-    return t.steps.some((s) =>
-      s.text.toLowerCase().includes(qLower)
-    );
-  });
-
-  renderSearchResults(matches, q);
-}
-
-// ---------------------------
 // Buttons
 // ---------------------------
 btnBackToCategories.addEventListener("click", () => {
@@ -760,11 +619,8 @@ btnBackToCategories.addEventListener("click", () => {
 });
 
 btnBackToTopics.addEventListener("click", () => {
-  if (currentCategory) {
-    renderTopicsForCategory(currentCategory);
-  } else {
-    renderCategories();
-  }
+  searchInputEl.value = "";
+  renderCategories();
 });
 
 btnResetCurrent.addEventListener("click", () => {
