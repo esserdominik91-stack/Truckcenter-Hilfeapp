@@ -1,758 +1,814 @@
 // ==============================================
-// Truck Center Hilfecenter – 3-Stufen-System
-// Kategorie → Unterkategorie → Thema → Schritte
+// Truckcenter Hilfecenter – Sheet-only Version
+// 3-Stufen-System: Kategorie → Thema → Schritte
+// Datenquelle: EIN Google Sheet (CSV-Export)
 // ==============================================
 
 const CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCXjTKGowsZ4NrxhRqueZyKaDA5ny-lSAuxNaxhCOmlk_SAmI9WBGCRnY-yeOzKOvNl_DuD4T49EMK/pub?output=csv";
 
-let data = [];
+const STORAGE_KEY = "truckcenter-hilfe-steps-done-v2";
+
+let rows = [];
+let categories = []; // { name, order, topicCount }
+let topics = []; // alle Themen
+let topicsByCategory = new Map(); // catName -> [topicObj]
+
 let currentCategory = null;
-let currentSubcategory = null;
-let currentTopicRow = null;
+let currentTopic = null;
+let doneSteps = {};
 
-const appEl = document.getElementById("app");
-const categoryListEl = document.getElementById("categoryList");
+// DOM-Refs
 const searchInputEl = document.getElementById("searchInput");
-const searchResultsEl = document.getElementById("searchResults");
+const statusTextEl = document.getElementById("statusText");
 
-const STORAGE_KEY = "truckcenter-hilfe-steps-v3";
-let doneState = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+const leftPanelTitleEl = document.getElementById("leftPanelTitle");
+const leftPanelSubtitleEl = document.getElementById("leftPanelSubtitle");
+const leftCounterEl = document.getElementById("leftCounter");
+const breadcrumbsEl = document.getElementById("breadcrumbs");
 
-// ----------------------------------------------------------
-// 1. CSV parsen (Delimiter automatisch)
-// ----------------------------------------------------------
+const categoriesViewEl = document.getElementById("categoriesView");
+const topicsViewEl = document.getElementById("topicsView");
+const searchResultsViewEl = document.getElementById("searchResultsView");
+const searchHintEl = document.getElementById("searchHint");
+
+const detailTitleEl = document.getElementById("detailTitle");
+const detailMetaEl = document.getElementById("detailMeta");
+const detailDescEl = document.getElementById("detailDesc");
+const progressRowEl = document.getElementById("progressRow");
+const progressBarInnerEl = document.getElementById("progressBarInner");
+const progressPercentEl = document.getElementById("progressPercent");
+const stepsListEl = document.getElementById("stepsList");
+const detailEmptyEl = document.getElementById("detailEmpty");
+
+const btnBackToCategories = document.getElementById("btnBackToCategories");
+const btnBackToTopics = document.getElementById("btnBackToTopics");
+const btnResetCurrent = document.getElementById("btnResetCurrent");
+
+// ---------------------------
+// CSV-Parser
+// ---------------------------
 function parseCSV(text) {
-  const lines = text
-    .split("\n")
-    .map(l => l.replace(/\r$/, ""))
-    .filter(l => l.trim().length > 0);
+  const result = [];
+  let row = [];
+  let current = "";
+  let insideQuotes = false;
 
-  if (lines.length === 0) {
-    console.warn("[Hilfecenter] Keine Zeilen im CSV");
-    return { rows: [], header: [], delimiter: "," };
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+
+    if (ch === '"') {
+      const next = text[i + 1];
+      if (insideQuotes && next === '"') {
+        current += '"';
+        i++;
+      } else {
+        insideQuotes = !insideQuotes;
+      }
+    } else if (ch === "," && !insideQuotes) {
+      row.push(current.trim());
+      current = "";
+    } else if ((ch === "\n" || ch === "\r") && !insideQuotes) {
+      if (current !== "" || row.length > 0) {
+        row.push(current.trim());
+        result.push(row);
+        row = [];
+        current = "";
+      }
+    } else {
+      current += ch;
+    }
   }
 
-  const firstLine = lines[0];
+  if (current !== "" || row.length > 0) {
+    row.push(current.trim());
+    result.push(row);
+  }
 
-  const delimiter =
-    (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length
-      ? ";"
-      : ",";
-
-  const header = firstLine.split(delimiter).map(h => h.trim());
-  console.log("[Hilfecenter] Header:", header, "Delimiter:", delimiter);
-
-  const rows = lines.slice(1).map(line => {
-    const parts = line.split(delimiter);
-    const obj = {};
-
-    header.forEach((h, i) => {
-      obj[h] = (parts[i] || "").trim();
-    });
-
-    return obj;
-  });
-
-  console.log("[Hilfecenter] Roh-Zeilen:", rows.length);
-  return { rows, header, delimiter };
+  return result;
 }
 
-// ----------------------------------------------------------
-// 2. Aus Rohdaten nutzbare Datensätze machen
-//    inkl. robuster Erkennung von unterkategorie / Kategorie
-// ----------------------------------------------------------
-function buildData(parsed) {
-  const { rows } = parsed;
-
-  const cleaned = rows.map(obj => {
-    const steps = [];
-    for (let i = 1; i <= 20; i++) {
-      const key = "schritt" + i;
-      if (obj[key] && obj[key].trim() !== "") {
-        steps.push({ num: i, text: obj[key].trim() });
-      }
-    }
-
-    const aktivRaw = (obj["aktiv"] || "").toLowerCase();
-    const highlightRaw = (obj["highlight"] || "").toLowerCase();
-
-    // Kategorie robust lesen
-    const kat =
-      obj["kategorie"] ||
-      obj["Kategorie"] ||
-      obj["kategorie "] ||
-      "";
-
-    // Unterkategorie robust lesen
-    const unter =
-      obj["unterkategorie"] ||
-      obj["Unterkategorie"] ||
-      obj["unterKategorie"] ||
-      obj["Subkategorie"] ||
-      obj["subkategorie"] ||
-      obj["unterkategorie "] ||
-      "";
-
-    // Kategorie-Reihenfolge robust
-    const katReihRaw =
-      obj["kategorie_reihenfolge"] ||
-      obj["kategorie Reihenfolge"] ||
-      obj["kategorie-reihenfolge"] ||
-      obj["Kategorie_Reihenfolge"] ||
-      "";
-
-    return {
-      kategorie: kat || "",
-      unterkategorie: unter || "",
-      kategorieReihenfolge: katReihRaw ? Number(katReihRaw) : 9999,
-      titel: obj["titel"] || obj["Titel"] || "",
-      inhalt: obj["inhalt"] || obj["Inhalt"] || "",
-      reihenfolge: obj["reihenfolge"]
-        ? Number(obj["reihenfolge"])
-        : 9999,
-      aktiv: aktivRaw === "" || aktivRaw === "ja" || aktivRaw === "1",
-      highlight: highlightRaw === "ja" || highlightRaw === "1",
-      steps
-    };
-  });
-
-  const used = cleaned.filter(r => r.kategorie && r.titel && r.aktiv);
-  console.log(
-    "[Hilfecenter] Verwendete Zeilen (kategorie + titel gesetzt + aktiv):",
-    used.length
-  );
-
-  // Debug: Zeige alle Kategorien + Unterkategorien
-  const debugMap = {};
-  used.forEach(r => {
-    if (!debugMap[r.kategorie]) debugMap[r.kategorie] = new Set();
-    debugMap[r.kategorie].add(r.unterkategorie || "");
-  });
-  Object.keys(debugMap).forEach(k => {
-    console.log(
-      "[Hilfecenter] Kategorie:",
-      k,
-      "Unterkategorien:",
-      Array.from(debugMap[k])
-    );
-  });
-
-  return used;
+function normHeader(h) {
+  return (h || "").toString().trim().toLowerCase();
 }
 
-// ----------------------------------------------------------
-// 3. Laden
-// ----------------------------------------------------------
-async function loadData() {
+// ---------------------------
+// LocalStorage für Häkchen
+// ---------------------------
+function loadDoneSteps() {
   try {
-    console.log("[Hilfecenter] Lade CSV:", CSV_URL);
-    const res = await fetch(CSV_URL + "&t=" + Date.now(), {
-      cache: "no-store"
-    });
+    const raw = localStorage.getItem(STORAGE_KEY);
+    doneSteps = raw ? JSON.parse(raw) : {};
+  } catch {
+    doneSteps = {};
+  }
+}
 
-    if (!res.ok) {
-      console.error("[Hilfecenter] CSV HTTP-Fehler:", res.status, res.statusText);
-      if (appEl) {
-        appEl.innerHTML =
-          '<div class="empty-hint">Fehler beim Laden des Hilfecenters (Status ' +
-          res.status +
-          '). Bitte CSV-Link und Freigabe prüfen.</div>';
+function saveDoneSteps() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(doneSteps));
+  } catch {
+    // Ignorieren (z. B. Private Mode)
+  }
+}
+
+function isStepDone(globalId) {
+  return !!doneSteps[globalId];
+}
+
+function setStepDone(globalId, done) {
+  if (done) {
+    doneSteps[globalId] = true;
+  } else {
+    delete doneSteps[globalId];
+  }
+  saveDoneSteps();
+}
+
+// ---------------------------
+// Datenmodell aus dem CSV
+// ---------------------------
+function buildModelFromRows(allRows) {
+  if (!allRows || allRows.length < 2) {
+    throw new Error("Keine Datenzeilen im CSV gefunden.");
+  }
+
+  const headerRow = allRows[0];
+  const headersNorm = headerRow.map(normHeader);
+
+  function idx(candidates) {
+    return headersNorm.findIndex((h) => candidates.includes(h));
+  }
+
+  const idxCategory = idx(["kategorie", "category", "bereich"]);
+  const idxTopic = idx(["thema", "topic", "titel", "title"]);
+  const idxSub = idx(["unterkategorie", "sub", "bereich2"]);
+  const idxDesc = idx([
+    "beschreibung",
+    "kurzbeschreibung",
+    "description",
+    "info",
+  ]);
+  const idxCatOrder = idx([
+    "kategorie_reihenfolge",
+    "cat_order",
+    "category_order",
+  ]);
+  const idxTopicOrder = idx([
+    "thema_reihenfolge",
+    "topic_order",
+    "sort",
+  ]);
+
+  if (idxCategory === -1 || idxTopic === -1) {
+    throw new Error(
+      "Spalten 'Kategorie' und/oder 'Thema' nicht gefunden. Bitte im Sheet prüfen."
+    );
+  }
+
+  // Spalten „Schritt 1 … Schritt 20“ / „Step 1 …“
+  const stepIndices = [];
+  headersNorm.forEach((h, i) => {
+    if (h.startsWith("schritt") || h.startsWith("step")) {
+      stepIndices.push(i);
+    }
+  });
+
+  const topicsTmp = [];
+  const categoriesMap = new Map();
+
+  for (let r = 1; r < allRows.length; r++) {
+    const row = allRows[r];
+    if (!row || row.length === 0) continue;
+
+    const catName = (row[idxCategory] || "Allgemein").trim();
+    const topicName = (row[idxTopic] || "").trim();
+    if (!topicName) continue;
+
+    const subName =
+      idxSub >= 0 && row[idxSub] ? String(row[idxSub]).trim() : "";
+    const desc =
+      idxDesc >= 0 && row[idxDesc] ? String(row[idxDesc]).trim() : "";
+
+    const catOrder =
+      idxCatOrder >= 0 && row[idxCatOrder]
+        ? Number(row[idxCatOrder]) || 9999
+        : 9999;
+    const topicOrder =
+      idxTopicOrder >= 0 && row[idxTopicOrder]
+        ? Number(row[idxTopicOrder]) || 9999
+        : 9999;
+
+    const steps = [];
+    stepIndices.forEach((sIdx, sPos) => {
+      const sText = row[sIdx] ? String(row[sIdx]).trim() : "";
+      if (sText) {
+        steps.push({
+          id: `r${r}-s${sPos}`,
+          text: sText,
+        });
       }
-      return;
-    }
-
-    const text = await res.text();
-    console.log("[Hilfecenter] CSV-Preview:", text.slice(0, 200));
-
-    const parsed = parseCSV(text);
-    data = buildData(parsed);
-
-    if (!data.length) {
-      appEl.innerHTML =
-        "<div class='empty-hint'>Das Sheet wurde geladen, aber es wurden keine Zeilen mit " +
-        "gefüllter Spalte 'kategorie' und 'titel' erkannt.</div>";
-      return;
-    }
-
-    renderCategories();
-    renderHome();
-  } catch (err) {
-    console.error("[Hilfecenter] Fehler beim Laden:", err);
-    if (appEl) {
-      appEl.innerHTML =
-        '<div class="empty-hint">Fehler beim Laden des Hilfecenters. Bitte CSV-Freigabe und URL prüfen.</div>';
-    }
-  }
-}
-
-// ----------------------------------------------------------
-// 4. Sidebar-Kategorien (links)
-// ----------------------------------------------------------
-function renderCategories() {
-  if (!categoryListEl) {
-    console.error("Element #categoryList nicht gefunden.");
-    return;
-  }
-
-  categoryListEl.innerHTML = "";
-
-  if (!data.length) {
-    categoryListEl.innerHTML =
-      '<div class="empty-hint">Keine Hilfecenter-Daten gefunden.</div>';
-    return;
-  }
-
-  const categories = [...new Set(data.map(r => r.kategorie))];
-
-  const ordered = categories
-    .map(cat => {
-      const row = data.find(r => r.kategorie === cat);
-      const order =
-        row && typeof row.kategorieReihenfolge === "number"
-          ? row.kategorieReihenfolge
-          : 9999;
-      const topicCount = data.filter(r => r.kategorie === cat).length;
-      return { name: cat, order, topicCount };
-    })
-    .sort((a, b) => {
-      if (a.order !== b.order) return a.order - b.order;
-      return a.name.localeCompare(b.name);
     });
 
-  ordered.forEach(cat => {
-    const btn = document.createElement("button");
-    btn.className = "category-btn";
-    if (currentCategory === cat.name) {
-      btn.classList.add("active");
+    const topicObj = {
+      id: `row-${r}`,
+      category: catName,
+      topic: topicName,
+      subcategory: subName,
+      description: desc,
+      catOrder,
+      topicOrder,
+      steps,
+    };
+
+    topicsTmp.push(topicObj);
+
+    if (!categoriesMap.has(catName)) {
+      categoriesMap.set(catName, {
+        name: catName,
+        order: catOrder,
+        topicCount: 0,
+      });
     }
-
-    const labelSpan = document.createElement("span");
-    labelSpan.className = "label";
-    labelSpan.textContent = cat.name;
-
-    const countSpan = document.createElement("span");
-    countSpan.className = "count";
-    countSpan.textContent = cat.topicCount + " Themen";
-
-    btn.appendChild(labelSpan);
-    btn.appendChild(countSpan);
-
-    btn.addEventListener("click", () => {
-      currentCategory = cat.name;
-      currentSubcategory = null;
-      currentTopicRow = null;
-      renderCategories();
-      renderSubcategories(cat.name);
-    });
-
-    categoryListEl.appendChild(btn);
-  });
-}
-
-// ----------------------------------------------------------
-// 5. Startseite – Kategorien als große Kacheln
-// ----------------------------------------------------------
-function renderHome() {
-  if (!appEl) return;
-
-  currentCategory = null;
-  currentSubcategory = null;
-  currentTopicRow = null;
-
-  const categories = [...new Set(data.map(r => r.kategorie))];
-
-  const ordered = categories
-    .map(cat => {
-      const row = data.find(r => r.kategorie === cat);
-      const order =
-        row && typeof row.kategorieReihenfolge === "number"
-          ? row.kategorieReihenfolge
-          : 9999;
-      const topicCount = data.filter(r => r.kategorie === cat).length;
-      return { name: cat, order, topicCount };
-    })
-    .sort((a, b) => {
-      if (a.order !== b.order) return a.order - b.order;
-      return a.name.localeCompare(b.name);
-    });
-
-  const wrapper = document.createElement("div");
-
-  const intro = document.createElement("div");
-  intro.className = "empty-hint";
-  intro.textContent =
-    "Wähle eine Kategorie, um die passenden Unterbereiche und Anleitungen zu öffnen.";
-  wrapper.appendChild(intro);
-
-  const list = document.createElement("div");
-  list.className = "topic-list";
-
-  ordered.forEach(cat => {
-    const btn = document.createElement("button");
-    btn.className = "topic-btn highlight";
-
-    const titleSpan = document.createElement("span");
-    titleSpan.className = "t-title";
-    titleSpan.textContent = cat.name;
-
-    const subSpan = document.createElement("span");
-    subSpan.className = "t-sub";
-    subSpan.textContent = cat.topicCount + " Anleitungen";
-
-    btn.appendChild(titleSpan);
-    btn.appendChild(subSpan);
-
-    btn.addEventListener("click", () => {
-      currentCategory = cat.name;
-      currentSubcategory = null;
-      currentTopicRow = null;
-      renderCategories();
-      renderSubcategories(cat.name);
-    });
-
-    list.appendChild(btn);
-  });
-
-  wrapper.appendChild(list);
-
-  appEl.innerHTML = "";
-  appEl.appendChild(wrapper);
-}
-
-// ----------------------------------------------------------
-// 6. Stufe 2 – Unterkategorien innerhalb einer Kategorie
-// ----------------------------------------------------------
-function renderSubcategories(catName) {
-  if (!appEl) return;
-
-  const topics = data.filter(r => r.kategorie === catName);
-
-  if (!topics.length) {
-    appEl.innerHTML =
-      '<div class="empty-hint">Für diese Kategorie sind aktuell keine Themen hinterlegt.</div>';
-    return;
+    const catObj = categoriesMap.get(catName);
+    catObj.topicCount += 1;
+    catObj.order = Math.min(catObj.order, catOrder);
   }
 
-  // Debug: welche Unterkategorien sieht die App?
-  console.log(
-    "[Subcategory-Debug]",
-    catName,
-    topics.map(t => t.unterkategorie || "")
+  categories = Array.from(categoriesMap.values()).sort(
+    (a, b) => a.order - b.order || a.name.localeCompare(b.name)
   );
 
-  const wrapper = document.createElement("div");
+  topics = topicsTmp.sort(
+    (a, b) =>
+      a.catOrder - b.catOrder ||
+      a.category.localeCompare(b.category) ||
+      a.topicOrder - b.topicOrder ||
+      a.topic.localeCompare(b.topic)
+  );
 
-  const breadcrumb = document.createElement("div");
-  breadcrumb.className = "breadcrumb";
-  breadcrumb.innerHTML =
-    `<button type="button" id="crumbRoot">Übersicht</button>` +
-    `<span class="sep">›</span>` +
-    `<span>${catName}</span>`;
-  wrapper.appendChild(breadcrumb);
-
-  const heading = document.createElement("h2");
-  heading.textContent = catName;
-  wrapper.appendChild(heading);
-
-  // Unterkategorien ermitteln
-  const groups = {};
-  topics.forEach(row => {
-    const key = row.unterkategorie || "_ohne";
-    if (!groups[key]) groups[key] = 0;
-    groups[key] += 1;
-  });
-
-  const subcats = Object.keys(groups).sort((a, b) => {
-    if (a === "_ohne") return -1;
-    if (b === "_ohne") return 1;
-    return a.localeCompare(b);
-  });
-
-  const list = document.createElement("div");
-  list.className = "topic-list";
-
-  // Falls es effektiv keine Unterkategorien gibt (nur "_ohne"):
-  if (subcats.length === 1 && subcats[0] === "_ohne") {
-    const hint = document.createElement("div");
-    hint.className = "empty-hint";
-    hint.innerHTML =
-      "Für diese Kategorie wurden keine Unterkategorien gefunden.<br>" +
-      "Prüfe im Sheet die Spalte <code>unterkategorie</code> (z. B.: Strom, Wasser, ...).";
-    wrapper.appendChild(hint);
-
-    // Direkt die Themen anzeigen (Fallback)
-    topics
-      .sort((a, b) => {
-        if (a.reihenfolge !== b.reihenfolge) return a.reihenfolge - b.reihenfolge;
-        return a.titel.localeCompare(b.titel);
-      })
-      .forEach(row => {
-        const btn = document.createElement("button");
-        btn.className = "topic-btn";
-        if (row.highlight) btn.classList.add("highlight");
-
-        const titleSpan = document.createElement("span");
-        titleSpan.className = "t-title";
-        titleSpan.textContent = row.titel;
-
-        const infoSpan = document.createElement("span");
-        infoSpan.className = "t-sub";
-        infoSpan.textContent =
-          (row.inhalt || "").slice(0, 80) +
-          (row.inhalt && row.inhalt.length > 80 ? " …" : "");
-
-        btn.appendChild(titleSpan);
-        if (row.inhalt) btn.appendChild(infoSpan);
-
-        btn.addEventListener("click", () => {
-          currentTopicRow = row;
-          renderTopic(row);
-        });
-
-        list.appendChild(btn);
-      });
-
-    wrapper.appendChild(list);
-
-    appEl.innerHTML = "";
-    appEl.appendChild(wrapper);
-
-    const crumbRoot = document.getElementById("crumbRoot");
-    if (crumbRoot) {
-      crumbRoot.addEventListener("click", () => {
-        renderCategories();
-        renderHome();
-      });
+  topicsByCategory = new Map();
+  for (const t of topics) {
+    if (!topicsByCategory.has(t.category)) {
+      topicsByCategory.set(t.category, []);
     }
-    return;
-  }
-
-  // Normale Unterkategorie-Kacheln
-  subcats.forEach(sub => {
-    const btn = document.createElement("button");
-    btn.className = "topic-btn";
-
-    const titleSpan = document.createElement("span");
-    titleSpan.className = "t-title";
-    titleSpan.textContent = sub === "_ohne" ? "Allgemein" : sub;
-
-    const subSpan = document.createElement("span");
-    subSpan.className = "t-sub";
-    subSpan.textContent = groups[sub] + " Themen";
-
-    btn.appendChild(titleSpan);
-    btn.appendChild(subSpan);
-
-    btn.addEventListener("click", () => {
-      currentCategory = catName;
-      currentSubcategory = sub === "_ohne" ? "" : sub;
-      currentTopicRow = null;
-      renderProblems(catName, currentSubcategory);
-    });
-
-    list.appendChild(btn);
-  });
-
-  wrapper.appendChild(list);
-
-  appEl.innerHTML = "";
-  appEl.appendChild(wrapper);
-
-  const crumbRoot = document.getElementById("crumbRoot");
-  if (crumbRoot) {
-    crumbRoot.addEventListener("click", () => {
-      renderCategories();
-      renderHome();
-    });
+    topicsByCategory.get(t.category).push(t);
   }
 }
 
-// ----------------------------------------------------------
-// 7. Stufe 3 – Probleme/Anleitungen innerhalb der Unterkategorie
-// ----------------------------------------------------------
-function renderProblems(catName, subcatName) {
-  if (!appEl) return;
+// ---------------------------
+// Render – linkes Panel
+// ---------------------------
+function renderCategories() {
+  currentCategory = null;
+  currentTopic = null;
+  categoriesViewEl.style.display = "grid";
+  topicsViewEl.style.display = "none";
+  searchResultsViewEl.style.display = "none";
+  searchHintEl.textContent = "";
 
-  const topics = data.filter(r => {
-    if (r.kategorie !== catName) return false;
-    const uk = r.unterkategorie || "";
-    const target = subcatName || "";
-    return uk === target;
-  });
+  leftPanelTitleEl.textContent = "Kategorien";
+  leftPanelSubtitleEl.textContent =
+    "Wähle eine Kategorie oder nutze die Suche.";
+  leftCounterEl.textContent =
+    categories.length === 1
+      ? "1 Kategorie"
+      : `${categories.length} Kategorien`;
 
-  if (!topics.length) {
-    appEl.innerHTML =
-      '<div class="empty-hint">Für diese Unterkategorie sind aktuell keine Themen hinterlegt.</div>';
+  breadcrumbsEl.innerHTML = "";
+
+  categoriesViewEl.innerHTML = "";
+  if (!categories.length) {
+    categoriesViewEl.innerHTML =
+      '<div class="empty">Keine Kategorien gefunden. Bitte Sheet prüfen.</div>';
     return;
   }
 
-  const wrapper = document.createElement("div");
+  categories.forEach((cat) => {
+    const topicsInCat = topicsByCategory.get(cat.name) || [];
+    const doneCount = topicsInCat.reduce(
+      (acc, t) => acc + countDoneStepsForTopic(t),
+      0
+    );
+    const totalSteps = topicsInCat.reduce(
+      (acc, t) => acc + t.steps.length,
+      0
+    );
 
-  const breadcrumb = document.createElement("div");
-  breadcrumb.className = "breadcrumb";
+    const card = document.createElement("div");
+    card.className = "card";
 
-  let trail =
-    `<button type="button" id="crumbRoot">Übersicht</button>` +
-    `<span class="sep">›</span>` +
-    `<button type="button" id="crumbCat">${catName}</button>`;
+    card.addEventListener("click", () => {
+      renderTopicsForCategory(cat.name);
+    });
 
-  if (subcatName) {
-    trail += `<span class="sep">›</span><span>${subcatName}</span>`;
+    const header = document.createElement("div");
+    header.className = "card-header";
+
+    const left = document.createElement("div");
+    const title = document.createElement("div");
+    title.className = "card-title";
+    title.textContent = cat.name;
+
+    const meta = document.createElement("div");
+    meta.className = "card-meta";
+    meta.textContent = `${topicsInCat.length} Themen`;
+
+    left.appendChild(title);
+    left.appendChild(meta);
+
+    const right = document.createElement("div");
+    right.style.display = "flex";
+    right.style.flexDirection = "column";
+    right.style.alignItems = "flex-end";
+    right.style.gap = "4px";
+
+    const badge = document.createElement("div");
+    badge.className = "badge-small";
+    badge.textContent = `Prio ${cat.order === 9999 ? "∞" : cat.order}`;
+
+    right.appendChild(badge);
+
+    if (totalSteps > 0) {
+      const pill = document.createElement("div");
+      pill.className = "dot-pill";
+
+      const dot = document.createElement("span");
+      pill.appendChild(dot);
+
+      const txt = document.createElement("span");
+      txt.textContent = `${doneCount}/${totalSteps} Schritte`;
+      pill.appendChild(txt);
+
+      right.appendChild(pill);
+    }
+
+    header.appendChild(left);
+    header.appendChild(right);
+
+    card.appendChild(header);
+    categoriesViewEl.appendChild(card);
+  });
+
+  btnBackToCategories.style.display = "none";
+  btnBackToTopics.style.display = "none";
+  btnResetCurrent.style.display = "none";
+
+  renderDetailEmpty();
+}
+
+function renderTopicsForCategory(catName) {
+  currentCategory = catName;
+  currentTopic = null;
+  categoriesViewEl.style.display = "none";
+  topicsViewEl.style.display = "flex";
+  topicsViewEl.innerHTML = "";
+  searchResultsViewEl.style.display = "none";
+  searchHintEl.textContent = "";
+
+  leftPanelTitleEl.textContent = "Themen";
+  leftPanelSubtitleEl.textContent = `Kategorie: ${catName}`;
+  const list = topicsByCategory.get(catName) || [];
+  leftCounterEl.textContent =
+    list.length === 1 ? "1 Thema" : `${list.length} Themen`;
+
+  breadcrumbsEl.innerHTML = "";
+  const homeBtn = document.createElement("button");
+  homeBtn.textContent = "Kategorien";
+  homeBtn.addEventListener("click", () => renderCategories());
+
+  const sep = document.createElement("span");
+  sep.textContent = "›";
+
+  const catStrong = document.createElement("strong");
+  catStrong.textContent = catName;
+
+  breadcrumbsEl.appendChild(homeBtn);
+  breadcrumbsEl.appendChild(sep);
+  breadcrumbsEl.appendChild(catStrong);
+
+  if (!list.length) {
+    topicsViewEl.innerHTML =
+      '<div class="empty">In dieser Kategorie sind noch keine Themen angelegt.</div>';
   } else {
-    trail += `<span class="sep">›</span><span>Allgemein</span>`;
-  }
-
-  breadcrumb.innerHTML = trail;
-  wrapper.appendChild(breadcrumb);
-
-  const heading = document.createElement("h2");
-  heading.textContent = subcatName || "Allgemein";
-  wrapper.appendChild(heading);
-
-  const list = document.createElement("div");
-  list.className = "topic-list";
-
-  topics
-    .sort((a, b) => {
-      if (a.reihenfolge !== b.reihenfolge) return a.reihenfolge - b.reihenfolge;
-      return a.titel.localeCompare(b.titel);
-    })
-    .forEach(row => {
-      const btn = document.createElement("button");
-      btn.className = "topic-btn";
-      if (row.highlight) btn.classList.add("highlight");
-
-      const titleSpan = document.createElement("span");
-      titleSpan.className = "t-title";
-      titleSpan.textContent = row.titel;
-
-      const infoSpan = document.createElement("span");
-      infoSpan.className = "t-sub";
-      infoSpan.textContent =
-        (row.inhalt || "").slice(0, 80) +
-        (row.inhalt && row.inhalt.length > 80 ? " …" : "");
-
-      btn.appendChild(titleSpan);
-      if (row.inhalt) btn.appendChild(infoSpan);
-
-      btn.addEventListener("click", () => {
-        currentTopicRow = row;
-        renderTopic(row);
+    list.forEach((t) => {
+      const row = document.createElement("div");
+      row.className = "topic-row";
+      row.addEventListener("click", () => {
+        renderTopicDetail(t, { fromSearch: false });
       });
 
-      list.appendChild(btn);
-    });
+      const main = document.createElement("div");
+      main.className = "topic-main";
 
-  wrapper.appendChild(list);
+      const title = document.createElement("div");
+      title.className = "topic-title";
+      title.textContent = t.topic;
 
-  appEl.innerHTML = "";
-  appEl.appendChild(wrapper);
+      const sub = document.createElement("div");
+      sub.className = "topic-sub";
+      sub.textContent = t.subcategory || "Ohne Unterkategorie";
 
-  const crumbRoot = document.getElementById("crumbRoot");
-  const crumbCat = document.getElementById("crumbCat");
+      main.appendChild(title);
+      main.appendChild(sub);
 
-  if (crumbRoot) {
-    crumbRoot.addEventListener("click", () => {
-      renderCategories();
-      renderHome();
+      const meta = document.createElement("div");
+      meta.className = "topic-meta";
+
+      const stepsInfo = document.createElement("span");
+      stepsInfo.className = "topic-steps";
+      stepsInfo.textContent = `${t.steps.length || 0} Schritte`;
+
+      const progressPill = document.createElement("div");
+      progressPill.className = "topic-progress-pill";
+
+      const bar = document.createElement("span");
+      bar.className = "bar";
+
+      const barInner = document.createElement("span");
+      barInner.className = "bar-inner";
+
+      const { doneCount, total } = getProgressForTopic(t);
+      const ratio = total > 0 ? doneCount / total : 0;
+      barInner.style.transform = `scaleX(${ratio})`;
+
+      bar.appendChild(barInner);
+
+      const txt = document.createElement("span");
+      txt.textContent =
+        total > 0 ? `${Math.round(ratio * 100)}%` : "0%";
+
+      progressPill.appendChild(bar);
+      progressPill.appendChild(txt);
+
+      meta.appendChild(stepsInfo);
+      meta.appendChild(progressPill);
+
+      row.appendChild(main);
+      row.appendChild(meta);
+
+      topicsViewEl.appendChild(row);
     });
   }
-  if (crumbCat) {
-    crumbCat.addEventListener("click", () => {
-      currentCategory = catName;
-      currentSubcategory = null;
-      currentTopicRow = null;
-      renderCategories();
-      renderSubcategories(catName);
-    });
-  }
+
+  btnBackToCategories.style.display = "inline-flex";
+  btnBackToTopics.style.display = "inline-flex";
+  btnResetCurrent.style.display = "none";
+
+  renderDetailEmpty();
 }
 
-// ----------------------------------------------------------
-// 8. Detailansicht mit Schritten
-// ----------------------------------------------------------
-function renderTopic(row) {
-  if (!appEl) return;
+function renderSearchResults(matches, query) {
+  currentCategory = null;
+  currentTopic = null;
+  categoriesViewEl.style.display = "none";
+  topicsViewEl.style.display = "none";
+  searchResultsViewEl.style.display = "flex";
+  searchResultsViewEl.innerHTML = "";
 
-  const wrapper = document.createElement("div");
+  leftPanelTitleEl.textContent = "Suchergebnisse";
+  leftPanelSubtitleEl.textContent = query
+    ? `Gefiltert nach: "${query}"`
+    : "Suche über alle Themen";
+  leftCounterEl.textContent =
+    matches.length === 1
+      ? "1 Treffer"
+      : `${matches.length} Treffer`;
 
-  const breadcrumb = document.createElement("div");
-  breadcrumb.className = "breadcrumb";
+  breadcrumbsEl.innerHTML = "";
+  const homeBtn = document.createElement("button");
+  homeBtn.textContent = "Kategorien";
+  homeBtn.addEventListener("click", () => {
+    searchInputEl.value = "";
+    renderCategories();
+  });
 
-  let trail =
-    `<button type="button" id="crumbRoot">Übersicht</button>` +
-    `<span class="sep">›</span>` +
-    `<button type="button" id="crumbCat">${row.kategorie}</button>`;
+  breadcrumbsEl.appendChild(homeBtn);
 
-  if (row.unterkategorie) {
-    trail +=
-      `<span class="sep">›</span>` +
-      `<button type="button" id="crumbSubcat">${row.unterkategorie}</button>`;
+  if (!query || query.length < 2) {
+    searchResultsViewEl.innerHTML =
+      '<div class="empty">Mindestens 2 Zeichen eingeben, um zu suchen.</div>';
+    searchHintEl.textContent =
+      "Hinweis: Es wird in Kategorie, Thema, Unterkategorie und Schritten gesucht.";
+    return;
   }
 
-  trail += `<span class="sep">›</span><span>${row.titel}</span>`;
-  breadcrumb.innerHTML = trail;
-
-  wrapper.appendChild(breadcrumb);
-
-  const heading = document.createElement("h2");
-  heading.textContent = row.titel;
-  wrapper.appendChild(heading);
-
-  if (row.inhalt) {
-    const intro = document.createElement("div");
-    intro.className = "topicIntro";
-    intro.textContent = row.inhalt;
-    wrapper.appendChild(intro);
+  if (!matches.length) {
+    searchResultsViewEl.innerHTML =
+      '<div class="empty">Keine Treffer. Suche anpassen oder Kategorie direkt wählen.</div>';
+    searchHintEl.textContent = "";
+    return;
   }
 
-  const stepsContainer = document.createElement("div");
-  stepsContainer.className = "steps";
+  searchHintEl.textContent =
+    "Treffer aus allen Kategorien. Klick auf ein Thema öffnet direkt die Schritte.";
 
-  row.steps.forEach(step => {
-    const id = `${row.kategorie}__${row.unterkategorie || ""}__${row.titel}__${step.num}`;
-    const done = !!doneState[id];
+  matches.forEach((t) => {
+    const row = document.createElement("div");
+    row.className = "topic-row";
+    row.addEventListener("click", () => {
+      renderTopicDetail(t, { fromSearch: true });
+    });
 
-    const stepDiv = document.createElement("div");
-    stepDiv.className = "step";
+    const main = document.createElement("div");
+    main.className = "topic-main";
 
-    const rowDiv = document.createElement("div");
-    rowDiv.className = "stepRow";
+    const title = document.createElement("div");
+    title.className = "topic-title";
+    title.textContent = t.topic;
+
+    const sub = document.createElement("div");
+    sub.className = "topic-sub";
+    sub.textContent = `${t.category} · ${
+      t.subcategory || "Ohne Unterkategorie"
+    }`;
+
+    main.appendChild(title);
+    main.appendChild(sub);
+
+    const meta = document.createElement("div");
+    meta.className = "topic-meta";
+
+    const stepsInfo = document.createElement("span");
+    stepsInfo.className = "topic-steps";
+    stepsInfo.textContent = `${t.steps.length || 0} Schritte`;
+
+    const { doneCount, total } = getProgressForTopic(t);
+    const ratio = total > 0 ? doneCount / total : 0;
+
+    const progressPill = document.createElement("div");
+    progressPill.className = "topic-progress-pill";
+
+    const bar = document.createElement("span");
+    bar.className = "bar";
+
+    const barInner = document.createElement("span");
+    barInner.className = "bar-inner";
+    barInner.style.transform = `scaleX(${ratio})`;
+
+    bar.appendChild(barInner);
+
+    const txt = document.createElement("span");
+    txt.textContent =
+      total > 0 ? `${Math.round(ratio * 100)}%` : "0%";
+
+    progressPill.appendChild(bar);
+    progressPill.appendChild(txt);
+
+    meta.appendChild(stepsInfo);
+    meta.appendChild(progressPill);
+
+    row.appendChild(main);
+    row.appendChild(meta);
+
+    searchResultsViewEl.appendChild(row);
+  });
+
+  btnBackToCategories.style.display = "inline-flex";
+  btnBackToTopics.style.display = "none";
+  btnResetCurrent.style.display = "none";
+
+  renderDetailEmpty();
+}
+
+// ---------------------------
+// Detail rechts
+// ---------------------------
+function renderDetailEmpty() {
+  currentTopic = null;
+  detailTitleEl.textContent = "Kein Thema ausgewählt";
+  detailMetaEl.textContent = "";
+  detailDescEl.textContent =
+    "Wähle links eine Kategorie und anschließend ein Thema.";
+  stepsListEl.innerHTML = "";
+  detailEmptyEl.style.display = "block";
+  progressRowEl.style.display = "none";
+}
+
+function countDoneStepsForTopic(topic) {
+  let c = 0;
+  for (let i = 0; i < topic.steps.length; i++) {
+    const globalId = `${topic.id}::${i}`;
+    if (isStepDone(globalId)) c++;
+  }
+  return c;
+}
+
+function getProgressForTopic(topic) {
+  const total = topic.steps.length;
+  const doneCount = countDoneStepsForTopic(topic);
+  return { doneCount, total };
+}
+
+function renderTopicDetail(topic, opts = {}) {
+  currentTopic = topic;
+  currentCategory = topic.category;
+
+  breadcrumbsEl.innerHTML = "";
+  const homeBtn = document.createElement("button");
+  homeBtn.textContent = "Kategorien";
+  homeBtn.addEventListener("click", () => renderCategories());
+
+  const sep1 = document.createElement("span");
+  sep1.textContent = "›";
+
+  const catBtn = document.createElement("button");
+  catBtn.textContent = topic.category;
+  catBtn.addEventListener("click", () =>
+    renderTopicsForCategory(topic.category)
+  );
+
+  const sep2 = document.createElement("span");
+  sep2.textContent = "›";
+
+  const topicStrong = document.createElement("strong");
+  topicStrong.textContent = topic.topic;
+
+  breadcrumbsEl.appendChild(homeBtn);
+  breadcrumbsEl.appendChild(sep1);
+  breadcrumbsEl.appendChild(catBtn);
+  breadcrumbsEl.appendChild(sep2);
+  breadcrumbsEl.appendChild(topicStrong);
+
+  detailTitleEl.textContent = topic.topic;
+
+  const metaParts = [];
+  metaParts.push(`Kategorie: ${topic.category}`);
+  if (topic.subcategory) metaParts.push(`Unterkategorie: ${topic.subcategory}`);
+  metaParts.push(`${topic.steps.length} Schritte`);
+
+  detailMetaEl.textContent = metaParts.join(" · ");
+  detailDescEl.textContent =
+    topic.description ||
+    "Für dieses Thema ist keine zusätzliche Beschreibung hinterlegt.";
+
+  stepsListEl.innerHTML = "";
+  detailEmptyEl.style.display = topic.steps.length ? "none" : "block";
+
+  topic.steps.forEach((step, index) => {
+    const globalId = `${topic.id}::${index}`;
+    const li = document.createElement("li");
+    li.className = "step-item";
+
+    const done = isStepDone(globalId);
+    if (done) li.classList.add("done");
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
+    checkbox.className = "step-checkbox";
     checkbox.checked = done;
+
     checkbox.addEventListener("change", () => {
-      toggleDone(id);
-      renderTopic(row);
-    });
-
-    const span = document.createElement("span");
-    span.className = "txt" + (done ? " done" : "");
-    span.textContent = `${step.num}. ${step.text}`;
-
-    rowDiv.appendChild(checkbox);
-    rowDiv.appendChild(span);
-    stepDiv.appendChild(rowDiv);
-    stepsContainer.appendChild(stepDiv);
-  });
-
-  wrapper.appendChild(stepsContainer);
-
-  appEl.innerHTML = "";
-  appEl.appendChild(wrapper);
-
-  const crumbRoot = document.getElementById("crumbRoot");
-  const crumbCat = document.getElementById("crumbCat");
-  const crumbSubcat = document.getElementById("crumbSubcat");
-
-  if (crumbRoot) {
-    crumbRoot.addEventListener("click", () => {
-      renderCategories();
-      renderHome();
-    });
-  }
-  if (crumbCat) {
-    crumbCat.addEventListener("click", () => {
-      currentCategory = row.kategorie;
-      currentSubcategory = null;
-      currentTopicRow = null;
-      renderCategories();
-      renderSubcategories(row.kategorie);
-    });
-  }
-  if (crumbSubcat) {
-    crumbSubcat.addEventListener("click", () => {
-      currentCategory = row.kategorie;
-      currentSubcategory = row.unterkategorie || "";
-      currentTopicRow = null;
-      renderCategories();
-      renderProblems(row.kategorie, currentSubcategory);
-    });
-  }
-}
-
-// ----------------------------------------------------------
-// 9. Done-State
-// ----------------------------------------------------------
-function toggleDone(id) {
-  doneState[id] = !doneState[id];
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(doneState));
-}
-
-// ----------------------------------------------------------
-// 10. Suche
-// ----------------------------------------------------------
-if (searchInputEl && searchResultsEl) {
-  searchInputEl.addEventListener("input", () => {
-    const q = searchInputEl.value.toLowerCase().trim();
-    if (!q || q.length < 2) {
-      searchResultsEl.style.display = "none";
-      searchResultsEl.innerHTML = "";
-      return;
-    }
-
-    const results = [];
-
-    data.forEach(row => {
-      let match = false;
-      if (row.titel.toLowerCase().includes(q)) match = true;
-      if (row.inhalt && row.inhalt.toLowerCase().includes(q)) match = true;
-      if (row.kategorie && row.kategorie.toLowerCase().includes(q)) match = true;
-      if (row.unterkategorie && row.unterkategorie.toLowerCase().includes(q)) match = true;
-      if (row.steps.some(s => s.text.toLowerCase().includes(q))) {
-        match = true;
+      setStepDone(globalId, checkbox.checked);
+      if (checkbox.checked) {
+        li.classList.add("done");
+      } else {
+        li.classList.remove("done");
       }
-
-      if (match) results.push(row);
+      updateDetailProgress(topic);
     });
 
-    searchResultsEl.innerHTML = "";
-    if (!results.length) {
-      searchResultsEl.style.display = "block";
-      searchResultsEl.innerHTML =
-        '<div class="searchResult"><span class="k">Keine Treffer.</span></div>';
-      return;
-    }
+    const textWrap = document.createElement("div");
+    textWrap.className = "step-text";
 
-    results.slice(0, 50).forEach(row => {
-      const div = document.createElement("div");
-      div.className = "searchResult";
+    const idxLabel = document.createElement("div");
+    idxLabel.className = "step-index";
+    idxLabel.textContent = `Schritt ${index + 1}`;
 
-      const spanK = document.createElement("span");
-      spanK.className = "k";
-      spanK.textContent =
-        (row.kategorie || "") +
-        (row.unterkategorie ? " → " + row.unterkategorie : "") +
-        " → ";
+    const mainTxt = document.createElement("div");
+    mainTxt.className = "step-main";
+    mainTxt.textContent = step.text;
 
-      const spanT = document.createElement("span");
-      spanT.className = "t";
-      spanT.textContent = row.titel;
+    textWrap.appendChild(idxLabel);
+    textWrap.appendChild(mainTxt);
 
-      div.appendChild(spanK);
-      div.appendChild(spanT);
+    li.appendChild(checkbox);
+    li.appendChild(textWrap);
 
-      div.addEventListener("click", () => {
-        searchResultsEl.style.display = "none";
-        searchResultsEl.innerHTML = "";
-        searchInputEl.value = "";
-        currentCategory = row.kategorie;
-        currentSubcategory = row.unterkategorie || "";
-        currentTopicRow = row;
-        renderCategories();
-        renderTopic(row);
-      });
-
-      searchResultsEl.appendChild(div);
-    });
-
-    searchResultsEl.style.display = "block";
+    stepsListEl.appendChild(li);
   });
+
+  updateDetailProgress(topic);
+
+  btnBackToCategories.style.display = "inline-flex";
+  btnBackToTopics.style.display = opts.fromSearch ? "none" : "inline-flex";
+  btnResetCurrent.style.display =
+    topic.steps.length > 0 ? "inline-flex" : "none";
+
+  if (!opts.fromSearch) {
+    categoriesViewEl.style.display = "none";
+    topicsViewEl.style.display = "flex";
+    searchResultsViewEl.style.display = "none";
+    searchHintEl.textContent = "";
+  } else {
+    categoriesViewEl.style.display = "none";
+    topicsViewEl.style.display = "none";
+    searchResultsViewEl.style.display = "flex";
+  }
 }
 
-// ----------------------------------------------------------
-// 11. Start
-// ----------------------------------------------------------
-loadData();
+function updateDetailProgress(topic) {
+  const { doneCount, total } = getProgressForTopic(topic);
+  if (!total) {
+    progressRowEl.style.display = "none";
+    return;
+  }
+  progressRowEl.style.display = "flex";
+
+  const ratio = doneCount / total;
+  progressBarInnerEl.style.transform = `scaleX(${ratio})`;
+  progressPercentEl.textContent = `${Math.round(ratio * 100)}%`;
+
+  progressRowEl.querySelector(
+    "#progressLabel"
+  ).textContent = `Fortschritt: ${doneCount}/${total} Schritte`;
+}
+
+// ---------------------------
+// Suche
+// ---------------------------
+function handleSearchInput() {
+  const q = searchInputEl.value.trim();
+  if (!q) {
+    renderCategories();
+    return;
+  }
+
+  const qLower = q.toLowerCase();
+  const matches = topics.filter((t) => {
+    if (
+      t.topic.toLowerCase().includes(qLower) ||
+      t.category.toLowerCase().includes(qLower) ||
+      (t.subcategory && t.subcategory.toLowerCase().includes(qLower))
+    ) {
+      return true;
+    }
+    return t.steps.some((s) =>
+      s.text.toLowerCase().includes(qLower)
+    );
+  });
+
+  renderSearchResults(matches, q);
+}
+
+// ---------------------------
+// Buttons
+// ---------------------------
+btnBackToCategories.addEventListener("click", () => {
+  searchInputEl.value = "";
+  renderCategories();
+});
+
+btnBackToTopics.addEventListener("click", () => {
+  if (currentCategory) {
+    renderTopicsForCategory(currentCategory);
+  } else {
+    renderCategories();
+  }
+});
+
+btnResetCurrent.addEventListener("click", () => {
+  if (!currentTopic) return;
+  if (!confirm("Alle Häkchen für dieses Thema zurücksetzen?")) return;
+
+  currentTopic.steps.forEach((_, index) => {
+    const globalId = `${currentTopic.id}::${index}`;
+    delete doneSteps[globalId];
+  });
+  saveDoneSteps();
+  renderTopicDetail(currentTopic);
+});
+
+// ---------------------------
+// Initialisierung
+// ---------------------------
+async function init() {
+  loadDoneSteps();
+
+  statusTextEl.textContent = "Lade CSV aus Google Sheets…";
+
+  try {
+    const resp = await fetch(CSV_URL);
+    if (!resp.ok) {
+      throw new Error(
+        `CSV konnte nicht geladen werden (HTTP ${resp.status}).`
+      );
+    }
+    const text = await resp.text();
+    rows = parseCSV(text);
+
+    buildModelFromRows(rows);
+
+    statusTextEl.textContent = "Daten geladen.";
+    renderCategories();
+  } catch (err) {
+    console.error(err);
+    statusTextEl.textContent =
+      "Fehler beim Laden der Daten. Bitte URL / Freigabe prüfen.";
+    categoriesViewEl.innerHTML =
+      '<div class="empty">CSV konnte nicht geladen werden. Bitte Google-Sheet-URL und Veröffentlichung ("Im Web veröffentlichen") prüfen.</div>';
+  }
+}
+
+searchInputEl.addEventListener("input", handleSearchInput);
+init();
