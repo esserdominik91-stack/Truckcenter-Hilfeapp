@@ -1,12 +1,13 @@
-// ==========================================================
-// Truckcenter Hilfecenter – FINAL + Debug (mit Header-Normalisierung)
-// ==========================================================
+// ==============================================
+// Truck Center Hilfecenter – 3-Stufen-System
+// ==============================================
 
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCXjTKGowsZ4NrxhRqueZyKaDA5ny-lSAuxNaxhCOmlk_SAmI9WBGCRnY-yeOzKOvNl_DuD4T49EMK/pub?output=csv";
-
+const CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCXjTKGowsZ4NrxhRqueZyKaDA5ny-lSAuxNaxhCOmlk_SAmI9WBGCRnY-yeOzKOvNl_DuD4T49EMK/pub?output=csv";
 
 let data = [];
 let currentCategory = null;
+let currentSubcategory = null;
 let currentTopicRow = null;
 
 const appEl = document.getElementById("app");
@@ -14,25 +15,11 @@ const categoryListEl = document.getElementById("categoryList");
 const searchInputEl = document.getElementById("searchInput");
 const searchResultsEl = document.getElementById("searchResults");
 
-const STORAGE_KEY = "truckcenter-hilfe-steps-v-debug";
+const STORAGE_KEY = "truckcenter-hilfe-steps-v3";
 let doneState = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
 
 // ----------------------------------------------------------
-// Header-Normalisierung (z.B. "Kategorie Reihenfolge" -> "kategorie_reihenfolge")
-// ----------------------------------------------------------
-function normalizeHeaderName(h) {
-  return h
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "_")
-    .replace(/[äÄ]/g, "ae")
-    .replace(/[öÖ]/g, "oe")
-    .replace(/[üÜ]/g, "ue")
-    .replace(/ß/g, "ss");
-}
-
-// ----------------------------------------------------------
-// 1. CSV parsen – Delimiter automatisch erkennen
+// 1. CSV parsen
 // ----------------------------------------------------------
 function parseCSV(text) {
   const lines = text
@@ -52,17 +39,8 @@ function parseCSV(text) {
       ? ";"
       : ",";
 
-  const rawHeader = firstLine.split(delimiter).map(h => h.trim());
-  const header = rawHeader.map(normalizeHeaderName);
-
-  console.log(
-    "[Hilfecenter] Raw-Header:",
-    rawHeader,
-    "→ Normalized:",
-    header,
-    "Delimiter:",
-    delimiter
-  );
+  const header = firstLine.split(delimiter).map(h => h.trim());
+  console.log("[Hilfecenter] Header:", header, "Delimiter:", delimiter);
 
   const rows = lines.slice(1).map(line => {
     const parts = line.split(delimiter);
@@ -99,6 +77,7 @@ function buildData(parsed) {
 
     return {
       kategorie: obj["kategorie"] || "",
+      unterkategorie: obj["unterkategorie"] || "",
       kategorieReihenfolge: obj["kategorie_reihenfolge"]
         ? Number(obj["kategorie_reihenfolge"])
         : 9999,
@@ -113,10 +92,9 @@ function buildData(parsed) {
     };
   });
 
-  // Nur Datensätze mit Kategorie + Titel
-  const used = cleaned.filter(r => r.kategorie && r.titel);
+  const used = cleaned.filter(r => r.kategorie && r.titel && r.aktiv);
   console.log(
-    "[Hilfecenter] Verwendete Zeilen (kategorie + titel gesetzt):",
+    "[Hilfecenter] Verwendete Zeilen (kategorie + titel gesetzt + aktiv):",
     used.length
   );
 
@@ -124,12 +102,14 @@ function buildData(parsed) {
 }
 
 // ----------------------------------------------------------
-// 3. Laden + Debug, falls keine Daten
+// 3. Laden
 // ----------------------------------------------------------
 async function loadData() {
   try {
     console.log("[Hilfecenter] Lade CSV:", CSV_URL);
-    const res = await fetch(CSV_URL);
+    const res = await fetch(CSV_URL + "&t=" + Date.now(), {
+      cache: "no-store"
+    });
 
     if (!res.ok) {
       console.error("[Hilfecenter] CSV HTTP-Fehler:", res.status, res.statusText);
@@ -137,35 +117,26 @@ async function loadData() {
         appEl.innerHTML =
           '<div class="empty-hint">Fehler beim Laden des Hilfecenters (Status ' +
           res.status +
-          '). Bitte CSV-Link, Freigabe und gid prüfen.</div>';
+          '). Bitte CSV-Link und Freigabe prüfen.</div>';
       }
       return;
     }
 
     const text = await res.text();
-
     console.log("[Hilfecenter] CSV-Preview:", text.slice(0, 200));
 
     const parsed = parseCSV(text);
     data = buildData(parsed);
 
     if (!data.length) {
-      if (appEl) {
-        appEl.innerHTML =
-          "<div class='empty-hint'>Das Sheet wurde geladen, aber es wurden keine Zeilen mit gefüllter " +
-          "Spalte 'kategorie' und 'titel' erkannt.<br><br>" +
-          "<strong>Header (normalisiert):</strong><br><pre>" +
-          parsed.header.join(" | ") +
-          "</pre><br>" +
-          "<strong>Erste Rohzeile:</strong><br><pre>" +
-          (parsed.rows[0] ? JSON.stringify(parsed.rows[0], null, 2) : "– keine –") +
-          "</pre></div>";
-      }
+      appEl.innerHTML =
+        "<div class='empty-hint'>Das Sheet wurde geladen, aber es wurden keine Zeilen mit " +
+        "gefüllter Spalte 'kategorie' und 'titel' erkannt.</div>";
       return;
     }
 
     renderCategories();
-    renderEmptyMain();
+    renderHome();
   } catch (err) {
     console.error("[Hilfecenter] Fehler beim Laden:", err);
     if (appEl) {
@@ -176,7 +147,7 @@ async function loadData() {
 }
 
 // ----------------------------------------------------------
-// 4. Kategorien
+// 4. Sidebar-Kategorien (Navigation links)
 // ----------------------------------------------------------
 function renderCategories() {
   if (!categoryListEl) {
@@ -229,9 +200,10 @@ function renderCategories() {
 
     btn.addEventListener("click", () => {
       currentCategory = cat.name;
+      currentSubcategory = null;
       currentTopicRow = null;
       renderCategories();
-      renderCategoryTopics(cat.name);
+      renderSubcategories(cat.name);
     });
 
     categoryListEl.appendChild(btn);
@@ -239,26 +211,82 @@ function renderCategories() {
 }
 
 // ----------------------------------------------------------
-// 5. Leere Ansicht
+// 5. Startseite – Kategorien als große Kacheln
 // ----------------------------------------------------------
-function renderEmptyMain() {
+function renderHome() {
   if (!appEl) return;
-  appEl.innerHTML =
-    '<div class="empty-hint">Wähle links eine Kategorie oder nutze die Suche, um eine Anleitung zu öffnen.</div>';
+
+  currentCategory = null;
+  currentSubcategory = null;
+  currentTopicRow = null;
+
+  const categories = [...new Set(data.map(r => r.kategorie))];
+
+  const ordered = categories
+    .map(cat => {
+      const row = data.find(r => r.kategorie === cat);
+      const order =
+        row && typeof row.kategorieReihenfolge === "number"
+          ? row.kategorieReihenfolge
+          : 9999;
+      const topicCount = data.filter(r => r.kategorie === cat).length;
+      return { name: cat, order, topicCount };
+    })
+    .sort((a, b) => {
+      if (a.order !== b.order) return a.order - b.order;
+      return a.name.localeCompare(b.name);
+    });
+
+  const wrapper = document.createElement("div");
+
+  const intro = document.createElement("div");
+  intro.className = "empty-hint";
+  intro.textContent =
+    "Wähle eine Kategorie, um die passenden Unterbereiche und Anleitungen zu öffnen.";
+  wrapper.appendChild(intro);
+
+  const list = document.createElement("div");
+  list.className = "topic-list";
+
+  ordered.forEach(cat => {
+    const btn = document.createElement("button");
+    btn.className = "topic-btn highlight";
+
+    const titleSpan = document.createElement("span");
+    titleSpan.className = "t-title";
+    titleSpan.textContent = cat.name;
+
+    const subSpan = document.createElement("span");
+    subSpan.className = "t-sub";
+    subSpan.textContent = cat.topicCount + " Anleitungen";
+
+    btn.appendChild(titleSpan);
+    btn.appendChild(subSpan);
+
+    btn.addEventListener("click", () => {
+      currentCategory = cat.name;
+      currentSubcategory = null;
+      currentTopicRow = null;
+      renderCategories();
+      renderSubcategories(cat.name);
+    });
+
+    list.appendChild(btn);
+  });
+
+  wrapper.appendChild(list);
+
+  appEl.innerHTML = "";
+  appEl.appendChild(wrapper);
 }
 
 // ----------------------------------------------------------
-// 6. Themen in einer Kategorie
+// 6. Stufe 2 – Unterkategorien innerhalb einer Kategorie
 // ----------------------------------------------------------
-function renderCategoryTopics(catName) {
-  const topics = data
-    .filter(r => r.kategorie === catName)
-    .sort((a, b) => {
-      if (a.reihenfolge !== b.reihenfolge) return a.reihenfolge - b.reihenfolge;
-      return a.titel.localeCompare(b.titel);
-    });
-
+function renderSubcategories(catName) {
   if (!appEl) return;
+
+  const topics = data.filter(r => r.kategorie === catName);
 
   if (!topics.length) {
     appEl.innerHTML =
@@ -270,37 +298,53 @@ function renderCategoryTopics(catName) {
 
   const breadcrumb = document.createElement("div");
   breadcrumb.className = "breadcrumb";
-  breadcrumb.innerHTML = `<button type="button" id="crumbRoot">Übersicht</button><span class="sep">›</span><span>${catName}</span>`;
+  breadcrumb.innerHTML =
+    `<button type="button" id="crumbRoot">Übersicht</button>` +
+    `<span class="sep">›</span>` +
+    `<span>${catName}</span>`;
   wrapper.appendChild(breadcrumb);
 
   const heading = document.createElement("h2");
   heading.textContent = catName;
   wrapper.appendChild(heading);
 
+  // Unterkategorien ermitteln
+  const groups = {};
+  topics.forEach(row => {
+    const key = row.unterkategorie || "_ohne";
+    if (!groups[key]) groups[key] = 0;
+    groups[key] += 1;
+  });
+
+  const subcats = Object.keys(groups).sort((a, b) => {
+    if (a === "_ohne") return -1;
+    if (b === "_ohne") return 1;
+    return a.localeCompare(b);
+  });
+
   const list = document.createElement("div");
   list.className = "topic-list";
 
-  topics.forEach(row => {
+  subcats.forEach(sub => {
     const btn = document.createElement("button");
     btn.className = "topic-btn";
-    if (row.highlight) btn.classList.add("highlight");
 
     const titleSpan = document.createElement("span");
     titleSpan.className = "t-title";
-    titleSpan.textContent = row.titel;
+    titleSpan.textContent = sub === "_ohne" ? "Allgemein" : sub;
 
-    const infoSpan = document.createElement("span");
-    infoSpan.className = "t-sub";
-    infoSpan.textContent =
-      (row.inhalt || "").slice(0, 80) +
-      (row.inhalt && row.inhalt.length > 80 ? " …" : "");
+    const subSpan = document.createElement("span");
+    subSpan.className = "t-sub";
+    subSpan.textContent = groups[sub] + " Themen";
 
     btn.appendChild(titleSpan);
-    if (row.inhalt) btn.appendChild(infoSpan);
+    btn.appendChild(subSpan);
 
     btn.addEventListener("click", () => {
-      currentTopicRow = row;
-      renderTopic(row);
+      currentCategory = catName;
+      currentSubcategory = sub === "_ohne" ? "" : sub;
+      currentTopicRow = null;
+      renderProblems(catName, currentSubcategory);
     });
 
     list.appendChild(btn);
@@ -314,16 +358,115 @@ function renderCategoryTopics(catName) {
   const crumbRoot = document.getElementById("crumbRoot");
   if (crumbRoot) {
     crumbRoot.addEventListener("click", () => {
-      currentCategory = null;
-      currentTopicRow = null;
       renderCategories();
-      renderEmptyMain();
+      renderHome();
     });
   }
 }
 
 // ----------------------------------------------------------
-// 7. Einzelnes Thema + Schritte
+// 7. Stufe 3 – Probleme/Anleitungen innerhalb der Unterkategorie
+// ----------------------------------------------------------
+function renderProblems(catName, subcatName) {
+  if (!appEl) return;
+
+  const topics = data.filter(r => {
+    if (r.kategorie !== catName) return false;
+    const uk = r.unterkategorie || "";
+    const target = subcatName || "";
+    return uk === target;
+  });
+
+  if (!topics.length) {
+    appEl.innerHTML =
+      '<div class="empty-hint">Für diese Unterkategorie sind aktuell keine Themen hinterlegt.</div>';
+    return;
+  }
+
+  const wrapper = document.createElement("div");
+
+  const breadcrumb = document.createElement("div");
+  breadcrumb.className = "breadcrumb";
+
+  let trail =
+    `<button type="button" id="crumbRoot">Übersicht</button>` +
+    `<span class="sep">›</span>` +
+    `<button type="button" id="crumbCat">${catName}</button>`;
+
+  if (subcatName) {
+    trail += `<span class="sep">›</span><span>${subcatName}</span>`;
+  } else {
+    trail += `<span class="sep">›</span><span>Allgemein</span>`;
+  }
+
+  breadcrumb.innerHTML = trail;
+  wrapper.appendChild(breadcrumb);
+
+  const heading = document.createElement("h2");
+  heading.textContent = subcatName || "Allgemein";
+  wrapper.appendChild(heading);
+
+  const list = document.createElement("div");
+  list.className = "topic-list";
+
+  topics
+    .sort((a, b) => {
+      if (a.reihenfolge !== b.reihenfolge) return a.reihenfolge - b.reihenfolge;
+      return a.titel.localeCompare(b.titel);
+    })
+    .forEach(row => {
+      const btn = document.createElement("button");
+      btn.className = "topic-btn";
+      if (row.highlight) btn.classList.add("highlight");
+
+      const titleSpan = document.createElement("span");
+      titleSpan.className = "t-title";
+      titleSpan.textContent = row.titel;
+
+      const infoSpan = document.createElement("span");
+      infoSpan.className = "t-sub";
+      infoSpan.textContent =
+        (row.inhalt || "").slice(0, 80) +
+        (row.inhalt && row.inhalt.length > 80 ? " …" : "");
+
+      btn.appendChild(titleSpan);
+      if (row.inhalt) btn.appendChild(infoSpan);
+
+      btn.addEventListener("click", () => {
+        currentTopicRow = row;
+        renderTopic(row);
+      });
+
+      list.appendChild(btn);
+    });
+
+  wrapper.appendChild(list);
+
+  appEl.innerHTML = "";
+  appEl.appendChild(wrapper);
+
+  const crumbRoot = document.getElementById("crumbRoot");
+  const crumbCat = document.getElementById("crumbCat");
+
+  if (crumbRoot) {
+    crumbRoot.addEventListener("click", () => {
+      renderCategories();
+      renderHome();
+    });
+  }
+  if (crumbCat) {
+    crumbCat.addEventListener("click", () => {
+      currentCategory = catName;
+      currentSubcategory = null;
+      currentTopicRow = null;
+      renderCategories();
+      renderSubcategories(catName);
+    });
+  }
+}
+
+// ----------------------------------------------------------
+// 8. Detailansicht mit Schritten
 // ----------------------------------------------------------
 function renderTopic(row) {
   if (!appEl) return;
@@ -332,7 +475,21 @@ function renderTopic(row) {
 
   const breadcrumb = document.createElement("div");
   breadcrumb.className = "breadcrumb";
-  breadcrumb.innerHTML = `<button type="button" id="crumbRoot">Übersicht</button><span class="sep">›</span><button type="button" id="crumbCat">${row.kategorie}</button><span class="sep">›</span><span>${row.titel}</span>`;
+
+  let trail =
+    `<button type="button" id="crumbRoot">Übersicht</button>` +
+    `<span class="sep">›</span>` +
+    `<button type="button" id="crumbCat">${row.kategorie}</button>`;
+
+  if (row.unterkategorie) {
+    trail +=
+      `<span class="sep">›</span>` +
+      `<button type="button" id="crumbSubcat">${row.unterkategorie}</button>`;
+  }
+
+  trail += `<span class="sep">›</span><span>${row.titel}</span>`;
+  breadcrumb.innerHTML = trail;
+
   wrapper.appendChild(breadcrumb);
 
   const heading = document.createElement("h2");
@@ -350,7 +507,7 @@ function renderTopic(row) {
   stepsContainer.className = "steps";
 
   row.steps.forEach(step => {
-    const id = `${row.kategorie}__${row.titel}__${step.num}`;
+    const id = `${row.kategorie}__${row.unterkategorie || ""}__${row.titel}__${step.num}`;
     const done = !!doneState[id];
 
     const stepDiv = document.createElement("div");
@@ -384,27 +541,36 @@ function renderTopic(row) {
 
   const crumbRoot = document.getElementById("crumbRoot");
   const crumbCat = document.getElementById("crumbCat");
+  const crumbSubcat = document.getElementById("crumbSubcat");
 
   if (crumbRoot) {
     crumbRoot.addEventListener("click", () => {
-      currentCategory = null;
-      currentTopicRow = null;
       renderCategories();
-      renderEmptyMain();
+      renderHome();
     });
   }
   if (crumbCat) {
     crumbCat.addEventListener("click", () => {
-      currentTopicRow = null;
       currentCategory = row.kategorie;
+      currentSubcategory = null;
+      currentTopicRow = null;
       renderCategories();
-      renderCategoryTopics(row.kategorie);
+      renderSubcategories(row.kategorie);
+    });
+  }
+  if (crumbSubcat) {
+    crumbSubcat.addEventListener("click", () => {
+      currentCategory = row.kategorie;
+      currentSubcategory = row.unterkategorie || "";
+      currentTopicRow = null;
+      renderCategories();
+      renderProblems(row.kategorie, currentSubcategory);
     });
   }
 }
 
 // ----------------------------------------------------------
-// 8. Done-State
+// 9. Done-State
 // ----------------------------------------------------------
 function toggleDone(id) {
   doneState[id] = !doneState[id];
@@ -412,7 +578,7 @@ function toggleDone(id) {
 }
 
 // ----------------------------------------------------------
-// 9. Suche
+// 10. Suche
 // ----------------------------------------------------------
 if (searchInputEl && searchResultsEl) {
   searchInputEl.addEventListener("input", () => {
@@ -429,6 +595,8 @@ if (searchInputEl && searchResultsEl) {
       let match = false;
       if (row.titel.toLowerCase().includes(q)) match = true;
       if (row.inhalt && row.inhalt.toLowerCase().includes(q)) match = true;
+      if (row.kategorie && row.kategorie.toLowerCase().includes(q)) match = true;
+      if (row.unterkategorie && row.unterkategorie.toLowerCase().includes(q)) match = true;
       if (row.steps.some(s => s.text.toLowerCase().includes(q))) {
         match = true;
       }
@@ -450,7 +618,10 @@ if (searchInputEl && searchResultsEl) {
 
       const spanK = document.createElement("span");
       spanK.className = "k";
-      spanK.textContent = row.kategorie + " → ";
+      spanK.textContent =
+        (row.kategorie || "") +
+        (row.unterkategorie ? " → " + row.unterkategorie : "") +
+        " → ";
 
       const spanT = document.createElement("span");
       spanT.className = "t";
@@ -464,6 +635,7 @@ if (searchInputEl && searchResultsEl) {
         searchResultsEl.innerHTML = "";
         searchInputEl.value = "";
         currentCategory = row.kategorie;
+        currentSubcategory = row.unterkategorie || "";
         currentTopicRow = row;
         renderCategories();
         renderTopic(row);
@@ -477,6 +649,6 @@ if (searchInputEl && searchResultsEl) {
 }
 
 // ----------------------------------------------------------
-// 10. Start
+// 11. Start
 // ----------------------------------------------------------
 loadData();
