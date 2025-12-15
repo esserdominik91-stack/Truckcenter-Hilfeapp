@@ -7,16 +7,15 @@
 
   <style>
     :root {
-      --bg: #020617;
-      --bg-elevated: #020617;
-      --bg-card: #020617;
-      --border-subtle: #1f2937;
-      --border-strong: #38bdf8;
-      --accent: #38bdf8;
-      --accent-soft: rgba(56,189,248,.1);
+      --bg: #0f172a;
+      --bg-soft: #111827;
+      --card: #1f2937;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.15);
       --text: #e5e7eb;
-      --text-muted: #9ca3af;
-      --danger: #f97373;
+      --text-soft: #9ca3af;
+      --danger: #ef4444;
+      --radius-xl: 18px;
     }
 
     * {
@@ -25,8 +24,9 @@
 
     body {
       margin: 0;
-      font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      background: radial-gradient(circle at top, #111827 0, #020617 45%, #000 100%);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
       color: var(--text);
       min-height: 100vh;
       display: flex;
@@ -34,399 +34,718 @@
       padding: 16px;
     }
 
-    /* Outer Shell */
-    .shell {
+    .app-shell {
       width: 100%;
       max-width: 1100px;
-      background: rgba(15,23,42,.98);
-      border-radius: 18px;
-      border: 1px solid rgba(148,163,184,.25);
+      background: linear-gradient(145deg, #020617 0, #020617 30%, #020617 100%);
+      border-radius: 24px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
       box-shadow:
-        0 20px 45px rgba(0,0,0,.75),
-        0 0 0 1px rgba(15,23,42,.9);
-      padding: 16px 18px 20px;
+        0 22px 55px rgba(15, 23, 42, 0.9),
+        0 0 0 1px rgba(15, 23, 42, 0.7);
+      padding: 20px 20px 24px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 16px;
     }
 
-    /* Header */
     header {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .header-top {
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
-      border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 10px;
-    }
-
-    header .title-block {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    header h1 {
-      margin: 0;
-      font-size: 1.1rem;
-      letter-spacing: .05em;
-      text-transform: uppercase;
-    }
-
-    header .subtitle {
-      font-size: .8rem;
-      color: var(--text-muted);
-    }
-
-    .badge {
-      font-size: .7rem;
-      padding: 4px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(56,189,248,.3);
-      background: radial-gradient(circle at top left, rgba(56,189,248,.25), rgba(15,23,42,1) 60%);
-      color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: .05em;
-      white-space: nowrap;
-    }
-
-    /* Search */
-    .topbar {
-      display: flex;
-      flex-direction: column;
       gap: 8px;
     }
 
-    .search-wrapper {
-      position: relative;
+    .title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
-    #searchInput {
-      width: 100%;
-      padding: 10px 12px 10px 32px;
+    .logo-pill {
+      width: 40px;
+      height: 40px;
       border-radius: 999px;
-      border: 1px solid var(--border-subtle);
-      background: #020617;
-      color: var(--text);
-      font-size: .9rem;
-      outline: none;
+      background: radial-gradient(circle at 30% 30%, #60a5fa, #1d4ed8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: white;
+      box-shadow:
+        0 0 0 1px rgba(191, 219, 254, 0.35),
+        0 15px 30px rgba(37, 99, 235, 0.6);
+      font-size: 20px;
     }
 
-    #searchInput::placeholder {
-      color: var(--text-muted);
+    h1 {
+      font-size: 20px;
+      letter-spacing: 0.03em;
+      margin: 0;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
     }
 
-    .search-icon {
-      position: absolute;
-      left: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: .9rem;
-      color: var(--text-muted);
-      pointer-events: none;
-    }
-
-    #searchResults {
-      margin-top: 6px;
-      background: var(--bg-card);
-      border-radius: 10px;
-      border: 1px solid var(--border-subtle);
-      display: none;
-      max-height: 260px;
-      overflow-y: auto;
-      font-size: .85rem;
-    }
-
-    .searchResult {
-      padding: 8px 10px;
-      cursor: pointer;
-      border-bottom: 1px solid rgba(15,23,42,1);
-    }
-
-    .searchResult:last-child {
-      border-bottom: none;
-    }
-
-    .searchResult:hover {
-      background: rgba(15,23,42,1);
-    }
-
-    .searchResult span.k {
-      color: var(--text-muted);
-    }
-
-    .searchResult span.t {
+    h1 span.highlight {
       color: var(--accent);
     }
 
-    /* Layout */
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
-      gap: 14px;
-      margin-top: 2px;
+    .badge {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      color: var(--text-soft);
+      background: rgba(15, 23, 42, 0.7);
     }
 
-    @media (max-width: 800px) {
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-soft);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .subtitle strong {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .chip {
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-soft);
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    .search-wrapper {
+      flex: 1;
+      min-width: 200px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.7);
+    }
+
+    .search-wrapper input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .search-wrapper input::placeholder {
+      color: var(--text-soft);
+    }
+
+    .search-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+
+    .toolbar-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+
+    .dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.8);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr);
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    @media (max-width: 900px) {
       .layout {
         grid-template-columns: minmax(0, 1fr);
       }
     }
 
-    /* Sidebar */
-    .sidebar {
-      background: var(--bg-card);
-      border-radius: 12px;
-      border: 1px solid var(--border-subtle);
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .sidebar-title {
-      font-size: .8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-    }
-
-    .category-btn {
-      width: 100%;
-      text-align: left;
-      padding: 8px 9px;
-      border-radius: 8px;
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--text);
-      font-size: .9rem;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .category-btn span.label {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .category-btn span.count {
-      font-size: .7rem;
-      color: var(--text-muted);
-    }
-
-    .category-btn:hover {
-      background: rgba(15,23,42,1);
-      border-color: var(--border-subtle);
-    }
-
-    .category-btn.active {
-      background: var(--accent-soft);
-      border-color: var(--border-strong);
-      color: var(--accent);
-    }
-
-    /* Main */
-    .main {
-      background: var(--bg-card);
-      border-radius: 12px;
-      border: 1px solid var(--border-subtle);
-      padding: 12px 12px 14px;
+    .panel {
+      background: radial-gradient(circle at top left, #111827 0, #020617 55%);
+      border-radius: 20px;
+      padding: 14px 14px 16px;
+      border: 1px solid rgba(31, 41, 55, 1);
+      box-shadow:
+        0 16px 30px rgba(15, 23, 42, 0.8),
+        0 0 0 1px rgba(15, 23, 42, 0.9);
       min-height: 220px;
     }
 
-    .main h2 {
-      margin: 0 0 8px;
-      font-size: 1rem;
+    .panel-header {
       display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: var(--text-soft);
+    }
+
+    .panel-subtitle {
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+
+    .pill-counter {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: var(--text-soft);
+      white-space: nowrap;
+    }
+
+    .breadcrumbs {
+      font-size: 11px;
+      color: var(--text-soft);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .breadcrumbs strong {
+      color: var(--text);
+    }
+
+    .breadcrumbs button {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 11px;
+      color: var(--accent);
+      cursor: pointer;
+    }
+
+    .breadcrumbs button:hover {
+      text-decoration: underline;
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+
+    .card {
+      position: relative;
+      border-radius: var(--radius-xl);
+      padding: 12px 12px 13px;
+      background:
+        radial-gradient(circle at 0 0, rgba(59, 130, 246, 0.12), transparent 55%),
+        radial-gradient(circle at 100% 100%, rgba(30, 64, 175, 0.6), #020617 60%);
+      border: 1px solid rgba(55, 65, 81, 0.95);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition:
+        transform 0.12s ease-out,
+        box-shadow 0.12s ease-out,
+        border-color 0.12s ease-out,
+        background 0.12s ease-out;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top, rgba(255, 255, 255, 0.02), transparent 55%);
+      opacity: 0;
+      transition: opacity 0.15s ease-out;
+    }
+
+    .card:hover {
+      transform: translateY(-1px) scale(1.01);
+      box-shadow:
+        0 16px 30px rgba(15, 23, 42, 0.9),
+        0 0 0 1px rgba(59, 130, 246, 0.8);
+      border-color: rgba(129, 140, 248, 0.9);
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .card-meta {
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+
+    .badge-small {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.85);
+      color: var(--text-soft);
+    }
+
+    .dot-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      color: var(--text-soft);
+    }
+
+    .dot-pill span {
+      width: 5px;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(52, 211, 153, 0.85);
+    }
+
+    .topics-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .topic-row {
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(31, 41, 55, 1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      transition:
+        background 0.12s ease-out,
+        border-color 0.12s ease-out,
+        transform 0.12s ease-out;
+    }
+
+    .topic-row:hover {
+      background: rgba(17, 24, 39, 0.95);
+      border-color: rgba(59, 130, 246, 0.8);
+      transform: translateY(-0.5px);
+    }
+
+    .topic-main {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .topic-title {
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .topic-sub {
+      font-size: 11px;
+      color: var(--text-soft);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .topic-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-soft);
+      white-space: nowrap;
+    }
+
+    .topic-progress-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      font-size: 10px;
+      color: var(--text-soft);
+    }
+
+    .topic-progress-pill span.bar {
+      width: 36px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 1);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .topic-progress-pill span.bar-inner {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #38bdf8, #22c55e);
+      transform-origin: left center;
+      transform: scaleX(0);
+      transition: transform 0.2s ease-out;
+    }
+
+    .topic-steps {
+      font-size: 10px;
+      color: var(--text-soft);
+    }
+
+    .detail-header {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .detail-title {
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .detail-meta {
+      font-size: 11px;
+      color: var(--text-soft);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .detail-desc {
+      font-size: 12px;
+      color: var(--text-soft);
+      margin-top: 4px;
+    }
+
+    .progress-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      margin-top: 2px;
+    }
+
+    .progress-label {
+      font-size: 11px;
+      color: var(--text-soft);
+    }
+
+    .progressbar-wrap {
+      flex: 1;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 1);
+      overflow: hidden;
+      position: relative;
+      border: 1px solid rgba(30, 64, 175, 0.8);
+    }
+
+    .progressbar-inner {
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #38bdf8, #22c55e);
+      transform-origin: left center;
+      transform: scaleX(0);
+      transition: transform 0.25s ease-out;
+    }
+
+    .progress-percentage {
+      font-size: 11px;
+      color: var(--text-soft);
+      min-width: 42px;
+      text-align: right;
+    }
+
+    .steps-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 280px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(31, 41, 55, 1);
+      font-size: 12px;
+    }
+
+    .step-item.done {
+      border-color: rgba(22, 163, 74, 0.7);
+      background: radial-gradient(circle at 0 0, rgba(22, 163, 74, 0.13), #020617 55%);
+    }
+
+    .step-checkbox {
+      margin-top: 2px;
+    }
+
+    .step-text {
+      flex: 1;
+    }
+
+    .step-index {
+      font-size: 10px;
+      color: var(--text-soft);
+      margin-bottom: 2px;
+    }
+
+    .step-main {
+      font-size: 12px;
+    }
+
+    .empty {
+      font-size: 12px;
+      color: var(--text-soft);
+      padding: 8px 4px;
+    }
+
+    .toolbar-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .btn {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-soft);
+      cursor: pointer;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
     }
 
-    /* Breadcrumb */
-    .breadcrumb {
-      font-size: .78rem;
-      color: var(--text-muted);
-      margin-bottom: 6px;
+    .btn-primary {
+      border-color: rgba(59, 130, 246, 0.9);
+      background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+      color: white;
     }
 
-    .breadcrumb button {
-      border: none;
-      background: none;
-      color: var(--accent);
-      cursor: pointer;
-      padding: 0;
-      font-size: inherit;
+    .btn-danger {
+      border-color: rgba(239, 68, 68, 0.9);
+      color: #fecaca;
     }
 
-    .breadcrumb span.sep {
-      margin: 0 4px;
-      color: var(--text-muted);
+    .btn:hover {
+      filter: brightness(1.05);
     }
 
-    /* Topic Intro */
-    .topicIntro {
-      font-size: .9rem;
-      color: var(--text-muted);
-      background: rgba(15,23,42,1);
-      border-radius: 8px;
-      padding: 8px 9px;
-      margin-bottom: 10px;
-      border: 1px dashed var(--border-subtle);
-    }
-
-    /* Topic list: als große Kacheln im Grid */
-    .topic-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 10px;
-      margin-top: 6px;
-    }
-
-    @media (max-width: 800px) {
-      .topic-list {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
-
-    .topic-btn {
-      width: 100%;
-      text-align: left;
-      padding: 14px 14px;
-      border-radius: 12px;
-      border: 1px solid var(--border-subtle);
-      background: rgba(15,23,42,1);
-      color: var(--text);
-      font-size: .95rem;
-      cursor: pointer;
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      box-shadow:
-        0 14px 26px rgba(0,0,0,.55),
-        0 0 0 1px rgba(15,23,42,.7);
-      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
-    }
-
-    .topic-btn::before {
-      content: "⚙️";
-      font-size: 1.3rem;
-      margin-right: 4px;
-      flex-shrink: 0;
-    }
-
-    .topic-btn:hover {
-      background: rgba(25,33,50,1);
-      border-color: var(--accent);
-      transform: translateY(-3px);
-      box-shadow:
-        0 20px 38px rgba(0,0,0,.8),
-        0 0 0 1px rgba(56,189,248,.5);
-    }
-
-    .topic-btn.highlight {
-      border-color: var(--accent);
-      box-shadow:
-        0 22px 44px rgba(56,189,248,.45),
-        0 0 0 1px rgba(56,189,248,.7);
-    }
-
-    .topic-btn .t-title {
-      font-weight: 600;
-      font-size: .98rem;
-      margin-bottom: 2px;
-    }
-
-    .topic-btn .t-sub {
-      font-size: .8rem;
-      color: var(--text-muted);
-    }
-
-    /* Steps */
-    .steps {
+    .search-results {
       display: flex;
       flex-direction: column;
       gap: 6px;
-      margin-top: 8px;
+      margin-top: 6px;
     }
 
-    .step {
-      border-radius: 8px;
-      background: rgba(15,23,42,1);
-      border: 1px solid var(--border-subtle);
-      padding: 7px 9px;
-      font-size: .9rem;
-    }
-
-    .stepRow {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-    }
-
-    .stepRow input[type="checkbox"] {
-      margin-top: 3px;
-      cursor: pointer;
-    }
-
-    .stepRow span.txt {
-      display: inline-block;
-      white-space: pre-wrap;
-    }
-
-    .stepRow span.txt.done {
-      text-decoration: line-through;
-      color: var(--text-muted);
-    }
-
-    .empty-hint {
-      font-size: .85rem;
-      color: var(--text-muted);
-      padding: 6px 2px;
+    .search-hint {
+      font-size: 11px;
+      color: var(--text-soft);
+      margin-top: 2px;
     }
   </style>
 </head>
 <body>
-  <div class="shell">
+  <div class="app-shell">
     <header>
-      <div class="title-block">
-        <h1>Truckcenter Hilfecenter</h1>
-        <div class="subtitle">Interne Hilfe · Anleitungen · Prozess-Schritte</div>
-      </div>
-      <div class="badge">Sheet-gestützt · Live</div>
-    </header>
-
-    <div class="topbar">
-      <div class="search-wrapper">
-        <span class="search-icon">🔍</span>
-        <input id="searchInput" type="text" placeholder="Suche nach Kategorie, Unterkategorie oder Schritt …" />
-      </div>
-      <div id="searchResults"></div>
-    </div>
-
-    <div class="layout">
-      <aside class="sidebar">
-        <div class="sidebar-title">Kategorien</div>
-        <div id="categoryList"></div>
-      </aside>
-
-      <main class="main">
-        <div id="app">
-          <div class="empty-hint">
-            Wähle eine Kategorie oder nutze die Suche, um eine Anleitung zu öffnen.
+      <div class="header-top">
+        <div class="title-wrap">
+          <div class="logo-pill">TC</div>
+          <div>
+            <h1>
+              Truckcenter
+              <span class="highlight">HILFECENTER</span>
+              <span class="badge">intern · prozesse · anleitungen</span>
+            </h1>
+            <div class="subtitle">
+              <span>Sheet-gestützt · Live-Daten aus Google&nbsp;Sheets</span>
+              <span class="dot"></span>
+              <span><strong>3-Stufen-System:</strong> Kategorie → Thema → Schritte</span>
+            </div>
           </div>
         </div>
-      </main>
+      </div>
+
+      <div class="toolbar">
+        <div class="search-wrapper">
+          <div class="search-icon">⌕</div>
+          <input
+            id="searchInput"
+            type="text"
+            placeholder="Suche nach Thema, Kategorie oder Schritt (mind. 2 Zeichen)…"
+          />
+        </div>
+
+        <div class="toolbar-info">
+          <span class="chip">CSV · Single Sheet</span>
+          <span class="dot"></span>
+          <span id="statusText">Lade Daten…</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- Linkes Panel: Kategorien / Themen -->
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title" id="leftPanelTitle">Kategorien</div>
+            <div class="panel-subtitle" id="leftPanelSubtitle">
+              Wähle eine Kategorie oder nutze die Suche.
+            </div>
+          </div>
+          <div class="pill-counter" id="leftCounter">0 Kategorien</div>
+        </div>
+
+        <div class="breadcrumbs" id="breadcrumbs"></div>
+
+        <div id="categoriesView" class="category-grid"></div>
+        <div id="topicsView" class="topics-list" style="display:none;"></div>
+        <div id="searchResultsView" class="search-results" style="display:none;"></div>
+        <div id="searchHint" class="search-hint"></div>
+      </section>
+
+      <!-- Rechtes Panel: Detail / Schritte -->
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Detail & Schritte</div>
+            <div class="panel-subtitle">
+              Konkrete Prozess-Schritte, die pro Thema abgearbeitet werden.
+            </div>
+          </div>
+          <div class="toolbar-buttons">
+            <button class="btn btn-primary" id="btnBackToCategories" style="display:none;">
+              ← Zurück zu Kategorien
+            </button>
+            <button class="btn" id="btnBackToTopics" style="display:none;">
+              ← Zurück zu Themen
+            </button>
+            <button class="btn btn-danger" id="btnResetCurrent" style="display:none;">
+              Reset Thema
+            </button>
+          </div>
+        </div>
+
+        <div class="detail-header">
+          <div class="detail-title" id="detailTitle">Kein Thema ausgewählt</div>
+          <div class="detail-meta" id="detailMeta"></div>
+          <div class="detail-desc" id="detailDesc">
+            Wähle links eine Kategorie und anschließend ein Thema, um die
+            Schritt-für-Schritt-Anleitung zu sehen.
+          </div>
+        </div>
+
+        <div class="progress-row" id="progressRow" style="display:none;">
+          <div class="progress-label" id="progressLabel">Fortschritt</div>
+          <div class="progressbar-wrap">
+            <div class="progressbar-inner" id="progressBarInner"></div>
+          </div>
+          <div class="progress-percentage" id="progressPercent">0%</div>
+        </div>
+
+        <ul class="steps-list" id="stepsList"></ul>
+        <div class="empty" id="detailEmpty" style="display:none;">
+          Keine Schritte hinterlegt. Bitte Daten im Sheet prüfen.
+        </div>
+      </section>
     </div>
   </div>
 
-  <!-- Pfad zu deiner App-Logik -->
   <script src="js/app.js"></script>
 </body>
 </html>
