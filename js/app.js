@@ -1,5 +1,6 @@
 // ==============================================
 // Truck Center Hilfecenter – 3-Stufen-System
+// Kategorie → Unterkategorie → Thema → Schritte
 // ==============================================
 
 const CSV_URL =
@@ -19,7 +20,7 @@ const STORAGE_KEY = "truckcenter-hilfe-steps-v3";
 let doneState = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
 
 // ----------------------------------------------------------
-// 1. CSV parsen
+// 1. CSV parsen (Delimiter automatisch)
 // ----------------------------------------------------------
 function parseCSV(text) {
   const lines = text
@@ -59,6 +60,7 @@ function parseCSV(text) {
 
 // ----------------------------------------------------------
 // 2. Aus Rohdaten nutzbare Datensätze machen
+//    inkl. robuster Erkennung von unterkategorie / Kategorie
 // ----------------------------------------------------------
 function buildData(parsed) {
   const { rows } = parsed;
@@ -75,14 +77,37 @@ function buildData(parsed) {
     const aktivRaw = (obj["aktiv"] || "").toLowerCase();
     const highlightRaw = (obj["highlight"] || "").toLowerCase();
 
+    // Kategorie robust lesen
+    const kat =
+      obj["kategorie"] ||
+      obj["Kategorie"] ||
+      obj["kategorie "] ||
+      "";
+
+    // Unterkategorie robust lesen
+    const unter =
+      obj["unterkategorie"] ||
+      obj["Unterkategorie"] ||
+      obj["unterKategorie"] ||
+      obj["Subkategorie"] ||
+      obj["subkategorie"] ||
+      obj["unterkategorie "] ||
+      "";
+
+    // Kategorie-Reihenfolge robust
+    const katReihRaw =
+      obj["kategorie_reihenfolge"] ||
+      obj["kategorie Reihenfolge"] ||
+      obj["kategorie-reihenfolge"] ||
+      obj["Kategorie_Reihenfolge"] ||
+      "";
+
     return {
-      kategorie: obj["kategorie"] || "",
-      unterkategorie: obj["unterkategorie"] || "",
-      kategorieReihenfolge: obj["kategorie_reihenfolge"]
-        ? Number(obj["kategorie_reihenfolge"])
-        : 9999,
-      titel: obj["titel"] || "",
-      inhalt: obj["inhalt"] || "",
+      kategorie: kat || "",
+      unterkategorie: unter || "",
+      kategorieReihenfolge: katReihRaw ? Number(katReihRaw) : 9999,
+      titel: obj["titel"] || obj["Titel"] || "",
+      inhalt: obj["inhalt"] || obj["Inhalt"] || "",
       reihenfolge: obj["reihenfolge"]
         ? Number(obj["reihenfolge"])
         : 9999,
@@ -97,6 +122,21 @@ function buildData(parsed) {
     "[Hilfecenter] Verwendete Zeilen (kategorie + titel gesetzt + aktiv):",
     used.length
   );
+
+  // Debug: Zeige alle Kategorien + Unterkategorien
+  const debugMap = {};
+  used.forEach(r => {
+    if (!debugMap[r.kategorie]) debugMap[r.kategorie] = new Set();
+    debugMap[r.kategorie].add(r.unterkategorie || "");
+  });
+  Object.keys(debugMap).forEach(k => {
+    console.log(
+      "[Hilfecenter] Kategorie:",
+      k,
+      "Unterkategorien:",
+      Array.from(debugMap[k])
+    );
+  });
 
   return used;
 }
@@ -147,7 +187,7 @@ async function loadData() {
 }
 
 // ----------------------------------------------------------
-// 4. Sidebar-Kategorien (Navigation links)
+// 4. Sidebar-Kategorien (links)
 // ----------------------------------------------------------
 function renderCategories() {
   if (!categoryListEl) {
@@ -294,6 +334,13 @@ function renderSubcategories(catName) {
     return;
   }
 
+  // Debug: welche Unterkategorien sieht die App?
+  console.log(
+    "[Subcategory-Debug]",
+    catName,
+    topics.map(t => t.unterkategorie || "")
+  );
+
   const wrapper = document.createElement("div");
 
   const breadcrumb = document.createElement("div");
@@ -325,6 +372,63 @@ function renderSubcategories(catName) {
   const list = document.createElement("div");
   list.className = "topic-list";
 
+  // Falls es effektiv keine Unterkategorien gibt (nur "_ohne"):
+  if (subcats.length === 1 && subcats[0] === "_ohne") {
+    const hint = document.createElement("div");
+    hint.className = "empty-hint";
+    hint.innerHTML =
+      "Für diese Kategorie wurden keine Unterkategorien gefunden.<br>" +
+      "Prüfe im Sheet die Spalte <code>unterkategorie</code> (z. B.: Strom, Wasser, ...).";
+    wrapper.appendChild(hint);
+
+    // Direkt die Themen anzeigen (Fallback)
+    topics
+      .sort((a, b) => {
+        if (a.reihenfolge !== b.reihenfolge) return a.reihenfolge - b.reihenfolge;
+        return a.titel.localeCompare(b.titel);
+      })
+      .forEach(row => {
+        const btn = document.createElement("button");
+        btn.className = "topic-btn";
+        if (row.highlight) btn.classList.add("highlight");
+
+        const titleSpan = document.createElement("span");
+        titleSpan.className = "t-title";
+        titleSpan.textContent = row.titel;
+
+        const infoSpan = document.createElement("span");
+        infoSpan.className = "t-sub";
+        infoSpan.textContent =
+          (row.inhalt || "").slice(0, 80) +
+          (row.inhalt && row.inhalt.length > 80 ? " …" : "");
+
+        btn.appendChild(titleSpan);
+        if (row.inhalt) btn.appendChild(infoSpan);
+
+        btn.addEventListener("click", () => {
+          currentTopicRow = row;
+          renderTopic(row);
+        });
+
+        list.appendChild(btn);
+      });
+
+    wrapper.appendChild(list);
+
+    appEl.innerHTML = "";
+    appEl.appendChild(wrapper);
+
+    const crumbRoot = document.getElementById("crumbRoot");
+    if (crumbRoot) {
+      crumbRoot.addEventListener("click", () => {
+        renderCategories();
+        renderHome();
+      });
+    }
+    return;
+  }
+
+  // Normale Unterkategorie-Kacheln
   subcats.forEach(sub => {
     const btn = document.createElement("button");
     btn.className = "topic-btn";
