@@ -1,9 +1,9 @@
 // ==============================================
 // Truckcenter Hilfecenter – Sheet-only Version
-// UI: Einfache Problem-Kacheln links,
-// rechts Detail + Fortschritt + Schritte
-// Kachel-Aufbau:
-//   Kategorie → Unterkategorie → Titel → Inhalt
+// 2 Ebenen links:
+//   1) Kategorien als Kacheln
+//   2) Themenliste innerhalb einer Kategorie
+// Rechts: Detail + Fortschritt + Schritte
 // ==============================================
 
 const CSV_URL =
@@ -12,8 +12,8 @@ const CSV_URL =
 const STORAGE_KEY = "truckcenter-hilfe-steps-done-v2";
 
 let rows = [];
-let categories = [];
-let topics = [];
+let categories = [];           // [{ name, order, topicCount }]
+let topics = [];               // alle Themen (Probleme)
 let topicsByCategory = new Map();
 
 let currentCategory = null;
@@ -264,6 +264,13 @@ function buildModelFromRows(allRows) {
 // UI-Helfer
 // ---------------------------
 
+function getIconForCategory(catName) {
+  const c = (catName || "").toLowerCase();
+  if (c.includes("problem")) return "⚠️";
+  if (c.includes("allgemein")) return "ℹ️";
+  return "□";
+}
+
 function getIconForTopic(t) {
   const cat = (t.category || "").toLowerCase();
   const sub = (t.subcategory || "").toLowerCase();
@@ -289,87 +296,61 @@ function getProgressForTopic(topic) {
   return { doneCount, total };
 }
 
-// Kachel-Aufbau: Kategorie → Unterkategorie → Titel → Inhalt
-function createTopicCard(topic) {
-  const { doneCount, total } = getProgressForTopic(topic);
-  const ratio = total > 0 ? doneCount / total : 0;
+// Eine Kachel für eine Kategorie (Hauptthema)
+function createCategoryCard(cat) {
+  const topicsInCat = topicsByCategory.get(cat.name) || [];
+
+  let totalSteps = 0;
+  let doneCount = 0;
+  topicsInCat.forEach((t) => {
+    totalSteps += t.steps.length;
+    doneCount += countDoneStepsForTopic(t);
+  });
 
   const card = document.createElement("div");
   card.className = "card";
 
   card.addEventListener("click", () => {
-    renderTopicDetail(topic, { fromSearch: false });
+    renderTopicsForCategory(cat.name);
   });
 
   const header = document.createElement("div");
   header.className = "card-header";
 
-  // LINKER Bereich: Texte
   const left = document.createElement("div");
   left.style.display = "flex";
   left.style.flexDirection = "column";
-  left.style.gap = "3px";
-  left.style.minWidth = "0";
+  left.style.gap = "4px";
 
-  // 1) Kategorie (Hauptthema)
-  const catLabel = document.createElement("div");
-  catLabel.style.fontSize = "11px";
-  catLabel.style.textTransform = "uppercase";
-  catLabel.style.letterSpacing = "0.12em";
-  catLabel.style.color = "#9ca3af";
-  catLabel.textContent = topic.category || "Allgemeines";
+  // Kategorie-Name
+  const title = document.createElement("div");
+  title.className = "card-title";
+  title.textContent = `${getIconForCategory(cat.name)} ${cat.name}`;
 
-  // 2) Unterkategorie (falls vorhanden)
-  const subLabel = document.createElement("div");
-  subLabel.style.fontSize = "12px";
-  subLabel.style.color = "#e5e7eb";
-  subLabel.style.fontWeight = "500";
-  subLabel.textContent = topic.subcategory || "Ohne Unterkategorie";
+  // Untertitel: Anzahl Themen
+  const meta = document.createElement("div");
+  meta.className = "card-meta";
+  meta.textContent =
+    topicsInCat.length === 1
+      ? "1 Thema in dieser Kategorie"
+      : `${topicsInCat.length} Themen in dieser Kategorie`;
 
-  // 3) Titel (Thema)
-  const titleLabel = document.createElement("div");
-  titleLabel.style.fontSize = "13px";
-  titleLabel.style.fontWeight = "600";
-  titleLabel.style.display = "flex";
-  titleLabel.style.alignItems = "center";
-  titleLabel.style.gap = "6px";
+  left.appendChild(title);
+  left.appendChild(meta);
 
-  const iconSpan = document.createElement("span");
-  iconSpan.textContent = getIconForTopic(topic);
-
-  const titleText = document.createElement("span");
-  titleText.textContent = topic.topic;
-
-  titleLabel.appendChild(iconSpan);
-  titleLabel.appendChild(titleText);
-
-  // 4) Inhalt / Beschreibung (Kurztext)
-  const descLabel = document.createElement("div");
-  descLabel.style.fontSize = "11px";
-  descLabel.style.color = "#9ca3af";
-  descLabel.style.marginTop = "2px";
-  descLabel.style.overflow = "hidden";
-  descLabel.style.textOverflow = "ellipsis";
-  descLabel.style.display = "-webkit-box";
-  descLabel.style.webkitLineClamp = "2";
-  descLabel.style.webkitBoxOrient = "vertical";
-  descLabel.textContent =
-    topic.description ||
-    "Hinweise und Schritte zur Lösung dieses Themas.";
-
-  left.appendChild(catLabel);
-  left.appendChild(subLabel);
-  left.appendChild(titleLabel);
-  left.appendChild(descLabel);
-
-  // RECHTS: Fortschritt
   const right = document.createElement("div");
   right.style.display = "flex";
   right.style.flexDirection = "column";
   right.style.alignItems = "flex-end";
   right.style.gap = "4px";
 
-  if (total > 0) {
+  // Prio-Badge
+  const badge = document.createElement("div");
+  badge.className = "badge-small";
+  badge.textContent = `Prio ${cat.order === 9999 ? "∞" : cat.order}`;
+  right.appendChild(badge);
+
+  if (totalSteps > 0) {
     const progressPill = document.createElement("div");
     progressPill.className = "topic-progress-pill";
 
@@ -378,6 +359,7 @@ function createTopicCard(topic) {
 
     const barInner = document.createElement("span");
     barInner.className = "bar-inner";
+    const ratio = totalSteps > 0 ? doneCount / totalSteps : 0;
     barInner.style.transform = `scaleX(${ratio})`;
 
     bar.appendChild(barInner);
@@ -398,36 +380,116 @@ function createTopicCard(topic) {
   return card;
 }
 
+// Eine Zeile für ein Thema innerhalb einer Kategorie
+function createTopicRow(t) {
+  const row = document.createElement("div");
+  row.className = "topic-row";
+
+  row.addEventListener("click", () => {
+    renderTopicDetail(t);
+  });
+
+  const main = document.createElement("div");
+  main.className = "topic-main";
+
+  // Unterkategorie
+  const sub = document.createElement("div");
+  sub.className = "topic-sub";
+  sub.textContent = t.subcategory || "Ohne Unterkategorie";
+
+  // Titel mit Icon
+  const title = document.createElement("div");
+  title.className = "topic-title";
+
+  const iconSpan = document.createElement("span");
+  iconSpan.textContent = getIconForTopic(t);
+
+  const titleText = document.createElement("span");
+  titleText.textContent = t.topic;
+
+  title.appendChild(iconSpan);
+  title.appendChild(titleText);
+
+  // Beschreibung kurz
+  const desc = document.createElement("div");
+  desc.className = "topic-desc";
+  desc.textContent =
+    t.description ||
+    "Hinweise und Schritte zur Lösung dieses Themas.";
+
+  main.appendChild(sub);
+  main.appendChild(title);
+  main.appendChild(desc);
+
+  const meta = document.createElement("div");
+  meta.className = "topic-meta";
+
+  const stepsInfo = document.createElement("span");
+  stepsInfo.className = "topic-steps";
+  stepsInfo.textContent = `${t.steps.length || 0} Schritte`;
+
+  const { doneCount, total } = getProgressForTopic(t);
+  const ratio = total > 0 ? doneCount / total : 0;
+
+  const progressPill = document.createElement("div");
+  progressPill.className = "topic-progress-pill";
+
+  const bar = document.createElement("span");
+  bar.className = "bar";
+
+  const barInner = document.createElement("span");
+  barInner.className = "bar-inner";
+  barInner.style.transform = `scaleX(${ratio})`;
+
+  bar.appendChild(barInner);
+
+  const txt = document.createElement("span");
+  txt.textContent =
+    total > 0 ? `${Math.round(ratio * 100)}%` : "0%";
+
+  progressPill.appendChild(bar);
+  progressPill.appendChild(txt);
+
+  meta.appendChild(stepsInfo);
+  meta.appendChild(progressPill);
+
+  row.appendChild(main);
+  row.appendChild(meta);
+
+  return row;
+}
+
 // ---------------------------
-// Linkes Panel: Kachel-Übersicht
+// Linkes Panel: Kategorien
 // ---------------------------
-function renderOverview(list, modeLabel, subtitle) {
+function renderCategories() {
   currentCategory = null;
   currentTopic = null;
 
   categoriesViewEl.style.display = "grid";
   topicsViewEl.style.display = "none";
   searchResultsViewEl.style.display = "none";
-
-  leftPanelTitleEl.textContent = modeLabel || "Themen & Probleme";
-  leftPanelSubtitleEl.textContent =
-    subtitle ||
-    "Wähle ein Hauptthema (Kategorie) mit Unterkategorie und Titel.";
-  leftCounterEl.textContent =
-    list.length === 1 ? "1 Thema" : `${list.length} Themen`;
-
-  breadcrumbsEl.innerHTML = "";
   searchHintEl.textContent = "";
 
+  leftPanelTitleEl.textContent = "Kategorien";
+  leftPanelSubtitleEl.textContent =
+    "1. Kategorie wählen · 2. Thema wählen · 3. Schritte abarbeiten.";
+  leftCounterEl.textContent =
+    categories.length === 1
+      ? "1 Kategorie"
+      : `${categories.length} Kategorien`;
+
+  breadcrumbsEl.innerHTML = "";
+
   categoriesViewEl.innerHTML = "";
-  if (!list.length) {
+  if (!categories.length) {
     categoriesViewEl.innerHTML =
-      '<div class="empty">Keine Themen gefunden. Bitte Sheet prüfen.</div>';
+      '<div class="empty">Keine Kategorien gefunden. Bitte Sheet prüfen.</div>';
     return;
   }
 
-  list.forEach((t) => {
-    categoriesViewEl.appendChild(createTopicCard(t));
+  categories.forEach((cat) => {
+    categoriesViewEl.appendChild(createCategoryCard(cat));
   });
 
   btnBackToCategories.style.display = "none";
@@ -437,46 +499,115 @@ function renderOverview(list, modeLabel, subtitle) {
   renderDetailEmpty();
 }
 
-function renderCategories() {
-  renderOverview(
-    topics,
-    "Themen & Probleme",
-    "1. Kategorie · 2. Unterkategorie · 3. Titel lesen – dann tippen, um die Schritte zu sehen."
-  );
+// ---------------------------
+// Linkes Panel: Themenliste in einer Kategorie
+// ---------------------------
+function renderTopicsForCategory(catName) {
+  currentCategory = catName;
+  currentTopic = null;
+
+  const list = topicsByCategory.get(catName) || [];
+
+  categoriesViewEl.style.display = "none";
+  topicsViewEl.style.display = "flex";
+  topicsViewEl.innerHTML = "";
+  searchResultsViewEl.style.display = "none";
+  searchHintEl.textContent = "";
+
+  leftPanelTitleEl.textContent = "Themen in Kategorie";
+  leftPanelSubtitleEl.textContent = catName;
+  leftCounterEl.textContent =
+    list.length === 1 ? "1 Thema" : `${list.length} Themen`;
+
+  // Breadcrumbs
+  breadcrumbsEl.innerHTML = "";
+  const homeBtn = document.createElement("button");
+  homeBtn.textContent = "Kategorien";
+  homeBtn.addEventListener("click", () => renderCategories());
+
+  const sep = document.createElement("span");
+  sep.textContent = "›";
+
+  const catStrong = document.createElement("strong");
+  catStrong.textContent = catName;
+
+  breadcrumbsEl.appendChild(homeBtn);
+  breadcrumbsEl.appendChild(sep);
+  breadcrumbsEl.appendChild(catStrong);
+
+  if (!list.length) {
+    topicsViewEl.innerHTML =
+      '<div class="empty">In dieser Kategorie sind noch keine Themen angelegt.</div>';
+  } else {
+    list.forEach((t) => {
+      topicsViewEl.appendChild(createTopicRow(t));
+    });
+  }
+
+  btnBackToCategories.style.display = "inline-flex";
+  btnBackToTopics.style.display = "inline-flex";
+  btnResetCurrent.style.display = "none";
+
+  renderDetailEmpty();
 }
 
 // ---------------------------
-// Suche
+// Suche: zeigt Themenliste (über alle Kategorien)
 // ---------------------------
 function renderSearchResults(matches, query) {
+  currentCategory = null;
+  currentTopic = null;
+
+  categoriesViewEl.style.display = "none";
+  topicsViewEl.style.display = "flex";
+  topicsViewEl.innerHTML = "";
+  searchResultsViewEl.style.display = "none";
+
+  leftPanelTitleEl.textContent = "Suchergebnisse";
+  leftPanelSubtitleEl.textContent = query
+    ? `Gefiltert nach: "${query}"`
+    : "Suche über alle Themen.";
+  leftCounterEl.textContent =
+    matches.length === 1
+      ? "1 Treffer"
+      : `${matches.length} Treffer`;
+
+  breadcrumbsEl.innerHTML = "";
+  const homeBtn = document.createElement("button");
+  homeBtn.textContent = "Kategorien";
+  homeBtn.addEventListener("click", () => {
+    searchInputEl.value = "";
+    renderCategories();
+  });
+  breadcrumbsEl.appendChild(homeBtn);
+
   if (!query || query.length < 2) {
-    renderOverview(
-      topics,
-      "Themen & Probleme",
-      "Mindestens 2 Zeichen eingeben, um zu suchen."
-    );
+    topicsViewEl.innerHTML =
+      '<div class="empty">Mindestens 2 Zeichen eingeben, um zu suchen.</div>';
     searchHintEl.textContent =
       "Hinweis: Es wird in Kategorie, Titel, Unterkategorie und Schritten gesucht.";
     return;
   }
 
   if (!matches.length) {
-    renderOverview(
-      [],
-      "Suchergebnisse",
-      `Keine Treffer für "${query}".`
-    );
+    topicsViewEl.innerHTML =
+      '<div class="empty">Keine Treffer. Suche anpassen oder Kategorie direkt wählen.</div>';
     searchHintEl.textContent = "";
     return;
   }
 
-  renderOverview(
-    matches,
-    "Suchergebnisse",
-    `Gefiltert nach: "${query}".`
-  );
   searchHintEl.textContent =
-    "Treffer aus allen Themen. Tippe auf eine Kachel, um die Schritte zu sehen.";
+    "Treffer aus allen Kategorien. Klick auf ein Thema öffnet die Schritte.";
+
+  matches.forEach((t) => {
+    topicsViewEl.appendChild(createTopicRow(t));
+  });
+
+  btnBackToCategories.style.display = "inline-flex";
+  btnBackToTopics.style.display = "none";
+  btnResetCurrent.style.display = "none";
+
+  renderDetailEmpty();
 }
 
 function handleSearchInput() {
@@ -511,21 +642,42 @@ function renderDetailEmpty() {
   detailTitleEl.textContent = "Kein Thema ausgewählt";
   detailMetaEl.textContent = "";
   detailDescEl.textContent =
-    "Wähle links ein Thema aus, um die Schritt-für-Schritt-Anleitung zu sehen.";
+    "Wähle links eine Kategorie und anschließend ein Thema.";
   stepsListEl.innerHTML = "";
   detailEmptyEl.style.display = "block";
   progressRowEl.style.display = "none";
 }
 
-function renderTopicDetail(topic, opts = {}) {
+function renderTopicDetail(topic) {
   currentTopic = topic;
   currentCategory = topic.category;
 
+  // Breadcrumbs
   breadcrumbsEl.innerHTML = "";
   const homeBtn = document.createElement("button");
-  homeBtn.textContent = "Übersicht";
+  homeBtn.textContent = "Kategorien";
   homeBtn.addEventListener("click", () => renderCategories());
+
+  const sep1 = document.createElement("span");
+  sep1.textContent = "›";
+
+  const catBtn = document.createElement("button");
+  catBtn.textContent = topic.category;
+  catBtn.addEventListener("click", () =>
+    renderTopicsForCategory(topic.category)
+  );
+
+  const sep2 = document.createElement("span");
+  sep2.textContent = "›";
+
+  const topicStrong = document.createElement("strong");
+  topicStrong.textContent = topic.topic;
+
   breadcrumbsEl.appendChild(homeBtn);
+  breadcrumbsEl.appendChild(sep1);
+  breadcrumbsEl.appendChild(catBtn);
+  breadcrumbsEl.appendChild(sep2);
+  breadcrumbsEl.appendChild(topicStrong);
 
   detailTitleEl.textContent = `${getIconForTopic(topic)} ${topic.topic}`;
 
@@ -588,7 +740,7 @@ function renderTopicDetail(topic, opts = {}) {
   updateDetailProgress(topic);
 
   btnBackToCategories.style.display = "inline-flex";
-  btnBackToTopics.style.display = "none";
+  btnBackToTopics.style.display = "inline-flex";
   btnResetCurrent.style.display =
     topic.steps.length > 0 ? "inline-flex" : "none";
 }
@@ -619,8 +771,11 @@ btnBackToCategories.addEventListener("click", () => {
 });
 
 btnBackToTopics.addEventListener("click", () => {
-  searchInputEl.value = "";
-  renderCategories();
+  if (currentCategory) {
+    renderTopicsForCategory(currentCategory);
+  } else {
+    renderCategories();
+  }
 });
 
 btnResetCurrent.addEventListener("click", () => {
