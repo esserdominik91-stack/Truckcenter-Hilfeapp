@@ -11,9 +11,17 @@
       --text: #0f172a;
       --muted: #64748b;
       --border: #e5e7eb;
+
+      /* Helle Blau-Akzente */
+      --accent: #2563eb;           /* blau */
+      --accentSoft: #eff6ff;       /* sehr hell blau */
+      --accentSoft2:#dbeafe;       /* hellblau */
+      --accentBorder: rgba(37,99,235,.28);
+
       --shadow: 0 10px 30px rgba(2,6,23,.08);
       --shadow2: 0 6px 18px rgba(2,6,23,.06);
       --ok: #16a34a;
+
       --radius: 18px;
       --radius2: 22px;
     }
@@ -22,7 +30,7 @@
       margin:0;
       font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
       color:var(--text);
-      background: linear-gradient(180deg, #ffffff 0%, var(--bg) 60%, var(--bg) 100%);
+      background: linear-gradient(180deg, #ffffff 0%, var(--accentSoft) 35%, var(--bg) 100%);
       min-height:100vh;
     }
     .wrap{
@@ -30,6 +38,7 @@
       margin: 0 auto;
       padding: 18px 16px 40px;
     }
+
     .topbar{
       display:flex;
       align-items:center;
@@ -38,7 +47,12 @@
       padding: 10px 0 14px;
     }
     .brand{ display:flex; flex-direction:column; gap:2px; }
-    .brand h1{ margin:0; font-size: 26px; letter-spacing:-0.02em; line-height:1.15; }
+    .brand h1{
+      margin:0;
+      font-size: 26px;
+      letter-spacing:-0.02em;
+      line-height:1.15;
+    }
     .brand small{ color:var(--muted); font-size: 13px; }
 
     .searchRow{
@@ -60,7 +74,7 @@
       box-shadow: 0 1px 0 rgba(2,6,23,.03);
     }
     .searchRow input:focus{
-      border-color: rgba(37,99,235,.45);
+      border-color: var(--accentBorder);
       box-shadow: 0 0 0 4px rgba(37,99,235,.12);
     }
 
@@ -81,6 +95,11 @@
       align-items:center;
     }
     .crumbs span{ display:inline-flex; align-items:center; }
+    .crumbs span.clickable{
+      cursor:pointer;
+      color: var(--accent);
+      font-weight:600;
+    }
     .crumbs .sep{ opacity:.55; padding:0 6px; }
 
     .btn{
@@ -90,14 +109,20 @@
       border-radius: 14px;
       cursor:pointer;
       font-size:14px;
-      color: var(--text);
+      color: var(--accent);
+      font-weight: 650;
       box-shadow: 0 1px 0 rgba(2,6,23,.03);
       display:inline-flex;
       align-items:center;
       gap:10px;
       user-select:none;
     }
-    .btn:hover{ box-shadow: var(--shadow2); transform: translateY(-1px); }
+    .btn:hover{
+      box-shadow: var(--shadow2);
+      transform: translateY(-1px);
+      border-color: var(--accentBorder);
+      background: linear-gradient(180deg, #fff 0%, var(--accentSoft) 100%);
+    }
     .btn:active{ transform: translateY(0px); }
 
     .grid{
@@ -115,27 +140,39 @@
       border-radius: var(--radius2);
       box-shadow: var(--shadow2);
       padding: 18px 18px;
-      min-height: 110px;
+      min-height: 112px;
       cursor:pointer;
       display:flex;
       flex-direction:column;
       justify-content:center;
       gap:10px;
       transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+      position:relative;
+      overflow:hidden;
+    }
+    /* dezenter Akzentstreifen */
+    .tile::before{
+      content:"";
+      position:absolute;
+      left:0; top:0; bottom:0;
+      width: 6px;
+      background: linear-gradient(180deg, rgba(37,99,235,.22), rgba(37,99,235,.08));
+      opacity:.9;
     }
     .tile:hover{
       transform: translateY(-2px);
       box-shadow: var(--shadow);
-      border-color: rgba(37,99,235,.25);
+      border-color: var(--accentBorder);
     }
     .tileTop{ display:flex; gap:12px; align-items:center; }
     .emoji{
-      width:46px; height:46px;
-      border-radius: 14px;
+      width:50px; height:50px;
+      border-radius: 16px;
       display:grid;
       place-items:center;
-      background: rgba(37,99,235,.08);
-      font-size: 22px;
+      background: linear-gradient(180deg, var(--accentSoft2) 0%, var(--accentSoft) 100%);
+      border: 1px solid rgba(37,99,235,.18);
+      font-size: 24px;
       flex: 0 0 auto;
     }
     .tileTitle{ margin:0; font-size: 18px; letter-spacing:-0.01em; }
@@ -157,7 +194,11 @@
       box-shadow: var(--shadow2);
       padding: 16px;
     }
-    .panel h3{ margin: 0 0 10px; font-size: 16px; }
+    .panel h3{
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: var(--text);
+    }
     .panel p{ margin: 6px 0; color: var(--muted); font-size: 14px; }
 
     .intro{
@@ -169,7 +210,7 @@
       margin-bottom: 10px;
       color: var(--text);
       white-space: pre-wrap;
-      line-height: 1.4;
+      line-height: 1.45;
     }
 
     .steps{ display:flex; flex-direction:column; gap: 10px; }
@@ -230,7 +271,7 @@
       box-shadow: 0 1px 0 rgba(2,6,23,.03);
       cursor:pointer;
     }
-    .resultItem:hover{ box-shadow: var(--shadow2); border-color: rgba(37,99,235,.25); }
+    .resultItem:hover{ box-shadow: var(--shadow2); border-color: var(--accentBorder); }
     .resultItem .rTitle{ margin:0; font-weight:700; }
     .resultItem .rMeta{ margin:6px 0 0; color: var(--muted); font-size: 13px; }
 
@@ -291,10 +332,10 @@
 
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCXjTKGowsZ4NrxhRqueZyKaDA5ny-lSAuxNaxhCOmlk_SAmI9WBGCRnY-yeOzKOvNl_DuD4T49EMK/pub?output=csv";
 
-const STORAGE_KEY = "truckshop-hilfe-done-v2";
+const STORAGE_KEY = "truckshop-hilfe-done-v3";
 let doneState = loadDone();
 
-let topics = []; // normalisierte Themen aus dem Sheet
+let topics = [];
 let state = { level: "start", category: null, subcategory: null, topicId: null };
 
 const appEl = document.getElementById("app");
@@ -353,30 +394,50 @@ function splitCSVLine(line){
   return result;
 }
 
-/* ---------- Helpers ---------- */
 function isActive(v){
   const x = nlow(v);
-  if(!x) return true; // wenn leer -> als aktiv behandeln
+  if(!x) return true;
   return ["1","true","ja","yes","y","aktiv","x"].includes(x);
 }
 
-function emojiFor(level, label){
-  const t = nlow(label);
-  if(level === "cat"){
-    if(t.includes("strom")) return "⚡";
-    if(t.includes("wasser")) return "💧";
-    if(t.includes("hydraul")) return "🛢️";
-    if(t.includes("licht") || t.includes("beleucht")) return "💡";
-    if(t.includes("brem")) return "🛑";
-    if(t.includes("reifen") || t.includes("rad")) return "🛞";
-    if(t.includes("druck") || t.includes("luft")) return "💨";
-    return "📁";
+/* ===========================================================
+   Emoji Mapping (Keyword-basiert) + Fallback
+   - level: cat | sub | topic
+   - Wir prüfen Label + optional Subcategory/Title für bessere Treffer.
+   =========================================================== */
+const EMOJI_RULES = [
+  { keys: ["strom", "elektr", "kabel", "sicherung", "batter", "spannung", "12v", "24v"], e: "⚡" },
+  { keys: ["wasser", "pumpe", "tank", "leitung", "hahn", "ventil", "leck", "dicht"], e: "💧" },
+  { keys: ["hydraul", "öl", "zylinder", "presse", "kipper"], e: "🛢️" },
+  { keys: ["luft", "druck", "kompressor", "pneum", "bremsluft"], e: "💨" },
+  { keys: ["brem", "abs", "esp", "belag", "scheibe"], e: "🛑" },
+  { keys: ["licht", "lampe", "beleucht", "led", "blinker"], e: "💡" },
+  { keys: ["reifen", "rad", "felge", "luftdruck", "profil"], e: "🛞" },
+  { keys: ["tür", "klappe", "scharnier", "verschluss", "griff"], e: "🚪" },
+  { keys: ["plan", "plane", "spriegel", "aufbau"], e: "🧵" },
+  { keys: ["kühl", "kuehl", "temperatur"], e: "❄️" },
+  { keys: ["motor", "antrieb", "getriebe"], e: "⚙️" },
+  { keys: ["sicherheit", "warn", "gefahr"], e: "⚠️" },
+  { keys: ["hilfe", "info", "anleitung", "faq"], e: "🧾" },
+  { keys: ["werkzeug", "tool", "schlüssel", "schraube"], e: "🧰" },
+  { keys: ["check", "prüfung", "kontrolle", "tüv", "hu"], e: "✅" },
+];
+
+const LEVEL_DEFAULT = {
+  cat: "📁",
+  sub: "🧩",
+  topic: "📌"
+};
+
+function emojiFor(level, ...texts){
+  const hay = texts.map(t => nlow(t)).join(" ");
+  for(const rule of EMOJI_RULES){
+    if(rule.keys.some(k => hay.includes(k))) return rule.e;
   }
-  if(level === "sub") return "🧩";
-  if(level === "topic") return "📌";
-  return "📄";
+  return LEVEL_DEFAULT[level] || "📄";
 }
 
+/* ---------- UI helpers ---------- */
 function uniqueBy(arr, fnKey){
   const m = new Map();
   for(const item of arr){
@@ -445,9 +506,10 @@ function setNav(){
   crumbsEl.innerHTML = "";
   parts.forEach((p, idx) => {
     const span = document.createElement("span");
-    span.style.cursor = (idx < parts.length-1) ? "pointer" : "default";
+    const isClickable = (idx < parts.length-1);
     span.textContent = p.label;
-    if(idx < parts.length-1){
+    if(isClickable){
+      span.className = "clickable";
       span.onclick = () => jumpToLevel(p.level);
     }
     crumbsEl.appendChild(span);
@@ -508,7 +570,7 @@ function renderSubcategories(){
     .sort((a,b) => (a.subOrder - b.subOrder) || a.subcategory.localeCompare(b.subcategory))
     .map(t => ({
       title: t.subcategory,
-      emoji: emojiFor("sub", t.subcategory),
+      emoji: emojiFor("sub", t.subcategory, state.category),
       meta: "Unterkategorie auswählen"
     }));
 
@@ -530,7 +592,7 @@ function renderTopics(){
     .map(t => ({
       id: t.id,
       title: t.title,
-      emoji: emojiFor("topic", t.title),
+      emoji: emojiFor("topic", t.title, t.subcategory, t.category),
       meta: "Thema öffnen"
     }));
 
@@ -657,9 +719,7 @@ function bindSearch(){
     }
 
     const hits = topics.filter(t => {
-      const hay = [
-        t.category, t.subcategory, t.title, t.content, ...(t.steps || [])
-      ].join(" ").toLowerCase();
+      const hay = [t.category, t.subcategory, t.title, t.content, ...(t.steps || [])].join(" ").toLowerCase();
       return hay.includes(q);
     }).slice(0, 20);
 
@@ -672,7 +732,7 @@ function bindSearch(){
 
       const tt = document.createElement("p");
       tt.className = "rTitle";
-      tt.textContent = t.title || "Treffer";
+      tt.textContent = `${emojiFor("topic", t.title, t.subcategory, t.category)}  ${t.title || "Treffer"}`;
 
       const m = document.createElement("p");
       m.className = "rMeta";
@@ -730,10 +790,9 @@ function render(){
   try{
     const raw = await loadCSV(CSV_URL);
 
-    // Normalize: 1 Zeile = 1 Thema inkl. schritt1..20
     topics = raw
       .filter(r => isActive(r["aktiv"]))
-      .map((r, idx) => {
+      .map((r) => {
         const category = norm(r["kategorie"]);
         const subcategory = norm(r["unterkategorie"]);
         const title = norm(r["titel"]);
@@ -748,11 +807,7 @@ function render(){
           if(v) steps.push(v);
         }
 
-        // stabile ID (auch wenn Reihenfolge im Sheet wechselt)
-        const id = [
-          nlow(category), nlow(subcategory), nlow(title)
-        ].join("||");
-
+        const id = [nlow(category), nlow(subcategory), nlow(title)].join("||");
         return { id, category, subcategory, title, content, steps, catOrder, subOrder };
       })
       .filter(t => t.category && t.subcategory && t.title);
@@ -765,7 +820,7 @@ function render(){
     box.innerHTML = `
       <h3>Fehler beim Laden</h3>
       <p>${(err && err.message) ? err.message : "Unbekannter Fehler"}</p>
-      <p>Prüfe bitte, ob die CSV-URL wirklich öffentlich abrufbar ist (publish) und ob die Header exakt stimmen.</p>
+      <p>Prüfe bitte, ob die CSV-URL öffentlich abrufbar ist (publish) und ob die Header exakt stimmen.</p>
     `;
     appEl.appendChild(box);
     searchRowEl.style.display = "none";
