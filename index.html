@@ -1,740 +1,777 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <title>Truckcenter Hilfecenter</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TruckShop Hilfe App</title>
   <style>
-    :root {
-      --bg: #0f172a;
-      --bg-soft: #111827;
-      --card: #1f2937;
-      --accent: #3b82f6;
-      --accent-soft: rgba(59, 130, 246, 0.15);
-      --text: #e5e7eb;
-      --text-soft: #9ca3af;
-      --danger: #ef4444;
-      --radius-xl: 18px;
+    :root{
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e5e7eb;
+      --shadow: 0 10px 30px rgba(2,6,23,.08);
+      --shadow2: 0 6px 18px rgba(2,6,23,.06);
+      --ok: #16a34a;
+      --radius: 18px;
+      --radius2: 22px;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background: linear-gradient(180deg, #ffffff 0%, var(--bg) 60%, var(--bg) 100%);
+      min-height:100vh;
+    }
+    .wrap{
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 18px 16px 40px;
+    }
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding: 10px 0 14px;
+    }
+    .brand{ display:flex; flex-direction:column; gap:2px; }
+    .brand h1{ margin:0; font-size: 26px; letter-spacing:-0.02em; line-height:1.15; }
+    .brand small{ color:var(--muted); font-size: 13px; }
+
+    .searchRow{
+      width:100%;
+      max-width: 520px;
+      margin-left:auto;
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    .searchRow input{
+      width:100%;
+      padding: 14px 14px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fff;
+      font-size: 16px;
+      outline:none;
+      box-shadow: 0 1px 0 rgba(2,6,23,.03);
+    }
+    .searchRow input:focus{
+      border-color: rgba(37,99,235,.45);
+      box-shadow: 0 0 0 4px rgba(37,99,235,.12);
     }
 
-    * {
-      box-sizing: border-box;
+    .navline{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin: 8px 0 14px;
     }
+    .crumbs{
+      color: var(--muted);
+      font-size: 14px;
+      line-height:1.4;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
+    .crumbs span{ display:inline-flex; align-items:center; }
+    .crumbs .sep{ opacity:.55; padding:0 6px; }
 
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
-      background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
+    .btn{
+      border:1px solid var(--border);
+      background:#fff;
+      padding: 10px 12px;
+      border-radius: 14px;
+      cursor:pointer;
+      font-size:14px;
       color: var(--text);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
+      box-shadow: 0 1px 0 rgba(2,6,23,.03);
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      user-select:none;
+    }
+    .btn:hover{ box-shadow: var(--shadow2); transform: translateY(-1px); }
+    .btn:active{ transform: translateY(0px); }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 16px;
+      margin-top: 14px;
+    }
+    @media (max-width: 980px){ .grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 560px){ .grid{ grid-template-columns: repeat(1, minmax(0,1fr)); } }
+
+    .tile{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius2);
+      box-shadow: var(--shadow2);
+      padding: 18px 18px;
+      min-height: 110px;
+      cursor:pointer;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:10px;
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+    }
+    .tile:hover{
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+      border-color: rgba(37,99,235,.25);
+    }
+    .tileTop{ display:flex; gap:12px; align-items:center; }
+    .emoji{
+      width:46px; height:46px;
+      border-radius: 14px;
+      display:grid;
+      place-items:center;
+      background: rgba(37,99,235,.08);
+      font-size: 22px;
+      flex: 0 0 auto;
+    }
+    .tileTitle{ margin:0; font-size: 18px; letter-spacing:-0.01em; }
+    .tileMeta{ margin:0; color: var(--muted); font-size: 14px; }
+
+    .topicLayout{
+      display:grid;
+      grid-template-columns: 1.7fr .9fr;
+      gap: 16px;
+      align-items:start;
+      margin-top: 14px;
+    }
+    @media (max-width: 980px){ .topicLayout{ grid-template-columns: 1fr; } }
+
+    .panel{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow2);
       padding: 16px;
     }
+    .panel h3{ margin: 0 0 10px; font-size: 16px; }
+    .panel p{ margin: 6px 0; color: var(--muted); font-size: 14px; }
 
-    .app-shell {
-      width: 100%;
-      max-width: 1100px;
-      background: linear-gradient(145deg, #020617 0, #020617 30%, #020617 100%);
-      border-radius: 24px;
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      box-shadow:
-        0 22px 55px rgba(15, 23, 42, 0.9),
-        0 0 0 1px rgba(15, 23, 42, 0.7);
-      padding: 20px 20px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    header {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .header-top {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .title-wrap {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .logo-pill {
-      width: 40px;
-      height: 40px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 30%, #60a5fa, #1d4ed8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      color: white;
-      box-shadow:
-        0 0 0 1px rgba(191, 219, 254, 0.35),
-        0 15px 30px rgba(37, 99, 235, 0.6);
-      font-size: 20px;
-    }
-
-    h1 {
-      font-size: 20px;
-      letter-spacing: 0.03em;
-      margin: 0;
-      display: flex;
-      align-items: baseline;
-      gap: 8px;
-    }
-
-    h1 span.highlight {
-      color: var(--accent);
-    }
-
-    .badge {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      color: var(--text-soft);
-      background: rgba(15, 23, 42, 0.7);
-    }
-
-    .subtitle {
-      font-size: 13px;
-      color: var(--text-soft);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .subtitle strong {
-      color: var(--accent);
-      font-weight: 500;
-    }
-
-    .chip {
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--text-soft);
-    }
-
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-      margin-top: 4px;
-    }
-
-    .search-wrapper {
-      flex: 1;
-      min-width: 200px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid rgba(148, 163, 184, 0.45);
-      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.7);
-    }
-
-    .search-wrapper input {
-      flex: 1;
-      border: none;
-      outline: none;
-      background: transparent;
+    .intro{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 0 rgba(2,6,23,.03);
+      padding: 12px;
+      margin-bottom: 10px;
       color: var(--text);
-      font-size: 13px;
+      white-space: pre-wrap;
+      line-height: 1.4;
     }
 
-    .search-wrapper input::placeholder {
-      color: var(--text-soft);
+    .steps{ display:flex; flex-direction:column; gap: 10px; }
+    .step{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 12px;
+      box-shadow: 0 1px 0 rgba(2,6,23,.03);
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+    }
+    .check{
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      border: 2px solid rgba(100,116,139,.35);
+      margin-top: 2px;
+      flex: 0 0 auto;
+      cursor:pointer;
+      position:relative;
+      background:#fff;
+    }
+    .check.done{
+      border-color: rgba(22,163,74,.55);
+      background: rgba(22,163,74,.10);
+    }
+    .check.done::after{
+      content:"";
+      position:absolute;
+      left:6px; top:2px;
+      width:6px; height:12px;
+      border-right:3px solid var(--ok);
+      border-bottom:3px solid var(--ok);
+      transform: rotate(40deg);
+    }
+    .stepText{ display:flex; flex-direction:column; gap:6px; width:100%; }
+    .stepText b{ font-size: 15px; line-height:1.3; }
+    .stepText .hint{
+      color: var(--muted);
+      font-size: 14px;
+      line-height:1.35;
+      white-space: pre-wrap;
     }
 
-    .search-icon {
-      width: 16px;
-      height: 16px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      color: var(--text-soft);
-    }
-
-    .toolbar-info {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      font-size: 11px;
-      color: var(--text-soft);
-    }
-
-    .dot {
-      width: 4px;
-      height: 4px;
-      border-radius: 999px;
-      background: rgba(148, 163, 184, 0.8);
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.5fr);
-      gap: 16px;
-      align-items: flex-start;
-    }
-
-    @media (max-width: 900px) {
-      .layout {
-        grid-template-columns: minmax(0, 1fr);
-      }
-    }
-
-    .panel {
-      background: radial-gradient(circle at top left, #111827 0, #020617 55%);
-      border-radius: 20px;
-      padding: 14px 14px 16px;
-      border: 1px solid rgba(31, 41, 55, 1);
-      box-shadow:
-        0 16px 30px rgba(15, 23, 42, 0.8),
-        0 0 0 1px rgba(15, 23, 42, 0.9);
-      min-height: 220px;
-    }
-
-    .panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-
-    .panel-title {
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      color: var(--text-soft);
-    }
-
-    .panel-subtitle {
-      font-size: 11px;
-      color: var(--text-soft);
-    }
-
-    .pill-counter {
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(148, 163, 184, 0.35);
-      color: var(--text-soft);
-      white-space: nowrap;
-    }
-
-    .breadcrumbs {
-      font-size: 11px;
-      color: var(--text-soft);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-
-    .breadcrumbs strong {
-      color: var(--text);
-    }
-
-    .breadcrumbs button {
-      background: none;
-      border: none;
-      padding: 0;
-      font-size: 11px;
-      color: var(--accent);
-      cursor: pointer;
-    }
-
-    .breadcrumbs button:hover {
-      text-decoration: underline;
-    }
-
-    /* Kategorien-Kacheln */
-    .category-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr); /* eine breite Kachel je Zeile */
-      gap: 12px;
-    }
-
-    .card {
-      position: relative;
-      border-radius: var(--radius-xl);
-      padding: 14px 18px 14px;
-      background:
-        radial-gradient(circle at 0 0, rgba(59, 130, 246, 0.10), transparent 55%),
-        radial-gradient(circle at 100% 100%, rgba(30, 64, 175, 0.55), #020617 60%);
-      border: 1px solid rgba(55, 65, 81, 0.95);
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      min-height: 70px;
-      transition:
-        transform 0.12s ease-out,
-        box-shadow 0.12s ease-out,
-        border-color 0.12s ease-out,
-        background 0.12s ease-out;
-      overflow: hidden;
-    }
-
-    .card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at top, rgba(255, 255, 255, 0.02), transparent 55%);
-      opacity: 0;
-      transition: opacity 0.15s ease-out;
-    }
-
-    .card:hover {
-      transform: translateY(-1px) scale(1.01);
-      box-shadow:
-        0 16px 30px rgba(15, 23, 42, 0.9),
-        0 0 0 1px rgba(59, 130, 246, 0.8);
-      border-color: rgba(129, 140, 248, 0.9);
-    }
-
-    .card:hover::before {
-      opacity: 1;
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 8px;
-    }
-
-    .card-title {
-      font-size: 15px;
-      font-weight: 600;
-    }
-
-    .card-meta {
-      font-size: 12px;
-      color: var(--text-soft);
-    }
-
-    .badge-small {
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-      background: rgba(15, 23, 42, 0.85);
-      color: var(--text-soft);
-    }
-
-    /* Themenliste innerhalb einer Kategorie + Suchergebnisse */
-    .topics-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .topic-row {
-      border-radius: 12px;
-      padding: 8px 10px;
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid rgba(31, 41, 55, 1);
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 8px;
-      cursor: pointer;
-      font-size: 12px;
-      transition:
-        background 0.12s ease-out,
-        border-color 0.12s ease-out,
-        transform 0.12s ease-out;
-    }
-
-    .topic-row:hover {
-      background: rgba(17, 24, 39, 0.95);
-      border-color: rgba(59, 130, 246, 0.8);
-      transform: translateY(-0.5px);
-    }
-
-    .topic-main {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      min-width: 0;
-    }
-
-    .topic-sub {
-      font-size: 11px;
-      color: var(--text-soft);
-    }
-
-    .topic-title {
-      font-size: 13px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .topic-desc {
-      font-size: 11px;
-      color: var(--text-soft);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-    }
-
-    .topic-meta {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 4px;
-      font-size: 11px;
-      color: var(--text-soft);
-    }
-
-    .topic-steps {
-      font-size: 11px;
-      color: var(--text-soft);
-    }
-
-    .topic-progress-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 6px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(59, 130, 246, 0.5);
-      font-size: 10px;
-      color: var(--text-soft);
-    }
-
-    .topic-progress-pill span.bar {
-      width: 40px;
-      height: 4px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 1);
-      overflow: hidden;
-      position: relative;
-    }
-
-    .topic-progress-pill span.bar-inner {
-      position: absolute;
-      inset: 0;
-      border-radius: 999px;
-      background: linear-gradient(90deg, #38bdf8, #22c55e);
-      transform-origin: left center;
-      transform: scaleX(0);
-      transition: transform 0.2s ease-out;
-    }
-
-    /* Rechtes Panel: Detail & Schritte */
-
-    .detail-header {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 10px;
-    }
-
-    .detail-title {
-      font-size: 15px;
-      font-weight: 600;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .detail-meta {
-      font-size: 11px;
-      color: var(--text-soft);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .detail-desc {
-      font-size: 12px;
-      color: var(--text-soft);
-      margin-top: 4px;
-    }
-
-    .progress-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    .results{
+      margin-top: 12px;
+      display:none;
       gap: 10px;
-      margin-bottom: 10px;
-      margin-top: 2px;
+      flex-direction:column;
     }
-
-    .progress-label {
-      font-size: 11px;
-      color: var(--text-soft);
+    .resultItem{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 12px;
+      box-shadow: 0 1px 0 rgba(2,6,23,.03);
+      cursor:pointer;
     }
+    .resultItem:hover{ box-shadow: var(--shadow2); border-color: rgba(37,99,235,.25); }
+    .resultItem .rTitle{ margin:0; font-weight:700; }
+    .resultItem .rMeta{ margin:6px 0 0; color: var(--muted); font-size: 13px; }
 
-    .progressbar-wrap {
-      flex: 1;
-      height: 6px;
-      border-radius: 999px;
-      background: rgba(15, 23, 42, 1);
-      overflow: hidden;
-      position: relative;
-      border: 1px solid rgba(30, 64, 175, 0.8);
+    .loading{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: 0 1px 0 rgba(2,6,23,.03);
+      color: var(--muted);
+      display:flex;
+      align-items:center;
+      gap:10px;
     }
-
-    .progressbar-inner {
-      position: absolute;
-      inset: -1px;
-      border-radius: inherit;
-      background: linear-gradient(90deg, #38bdf8, #22c55e);
-      transform-origin: left center;
-      transform: scaleX(0);
-      transition: transform 0.25s ease-out;
+    .dot{
+      width:10px; height:10px; border-radius:50%;
+      background: rgba(37,99,235,.35);
+      animation: pulse 1s infinite;
     }
-
-    .progress-percentage {
-      font-size: 11px;
-      color: var(--text-soft);
-      min-width: 42px;
-      text-align: right;
-    }
-
-    .steps-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      max-height: 340px;
-      overflow: auto;
-      padding-right: 4px;
-    }
-
-    .step-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 8px 10px;
-      border-radius: 12px;
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid rgba(31, 41, 55, 1);
-      font-size: 13px;
-    }
-
-    .step-item.done {
-      border-color: rgba(22, 163, 74, 0.7);
-      background: radial-gradient(circle at 0 0, rgba(22, 163, 74, 0.13), #020617 55%);
-    }
-
-    .step-checkbox {
-      margin-top: 2px;
-    }
-
-    .step-text {
-      flex: 1;
-    }
-
-    .step-index {
-      font-size: 10px;
-      color: var(--text-soft);
-      margin-bottom: 2px;
-    }
-
-    .step-main {
-      font-size: 12px;
-    }
-
-    .empty {
-      font-size: 12px;
-      color: var(--text-soft);
-      padding: 8px 4px;
-    }
-
-    .toolbar-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .btn {
-      font-size: 11px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      background: rgba(15, 23, 42, 0.9);
-      color: var(--text-soft);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .btn-primary {
-      border-color: rgba(59, 130, 246, 0.9);
-      background: linear-gradient(90deg, #1d4ed8, #3b82f6);
-      color: white;
-    }
-
-    .btn-danger {
-      border-color: rgba(239, 68, 68, 0.9);
-      color: #fecaca;
-    }
-
-    .btn:hover {
-      filter: brightness(1.05);
-    }
-
-    .search-results {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-top: 6px;
-    }
-
-    .search-hint {
-      font-size: 11px;
-      color: var(--text-soft);
-      margin-top: 2px;
+    @keyframes pulse{
+      0%{ transform: scale(1); opacity:.6; }
+      50%{ transform: scale(1.25); opacity:1; }
+      100%{ transform: scale(1); opacity:.6; }
     }
   </style>
 </head>
+
 <body>
-  <div class="app-shell">
-    <header>
-      <div class="header-top">
-        <div class="title-wrap">
-          <div class="logo-pill">TC</div>
-          <div>
-            <h1>
-              Truckcenter
-              <span class="highlight">HILFECENTER</span>
-              <span class="badge">intern · prozesse · anleitungen</span>
-            </h1>
-            <div class="subtitle">
-              <span>Einfache Hilfe: 1. Kategorie wählen, 2. Thema wählen, 3. Schritte abarbeiten.</span>
-            </div>
-          </div>
-        </div>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <h1>TruckShop Hilfe App</h1>
+        <small>Einfach klicken – Schritt für Schritt.</small>
       </div>
 
-      <div class="toolbar">
-        <div class="search-wrapper">
-          <div class="search-icon">⌕</div>
-          <input
-            id="searchInput"
-            type="text"
-            placeholder="Suche nach Thema, Kategorie oder Schritt (mind. 2 Zeichen)…"
-          />
-        </div>
-
-        <div class="toolbar-info">
-          <span class="chip">Interne Hilfe</span>
-          <span class="dot"></span>
-          <span id="statusText">Lade Daten…</span>
-        </div>
+      <!-- Suche nur auf Start -->
+      <div class="searchRow" id="searchRow" style="display:none;">
+        <input id="searchInput" type="search" placeholder="Suchen (z. B. Strom, Wasser, Pumpe …)" autocomplete="off" />
       </div>
-    </header>
+    </div>
 
-    <div class="layout">
-      <!-- Linkes Panel: Kategorien-Übersicht oder Themenliste -->
-      <section class="panel">
-        <div class="panel-header">
-          <div>
-            <div class="panel-title" id="leftPanelTitle">Kategorien</div>
-            <div class="panel-subtitle" id="leftPanelSubtitle">
-              1. Kategorie wählen · 2. Thema wählen.
-            </div>
-          </div>
-          <div class="pill-counter" id="leftCounter">0 Kategorien</div>
-        </div>
+    <div class="navline" id="navline" style="display:none;">
+      <div class="crumbs" id="crumbs"></div>
+      <button class="btn" id="backBtn" type="button">← Zurück</button>
+    </div>
 
-        <div class="breadcrumbs" id="breadcrumbs"></div>
-
-        <div id="categoriesView" class="category-grid"></div>
-        <div id="topicsView" class="topics-list" style="display:none;"></div>
-        <div id="searchResultsView" class="search-results" style="display:none;"></div>
-        <div id="searchHint" class="search-hint"></div>
-      </section>
-
-      <!-- Rechtes Panel: Detail / Schritte -->
-      <section class="panel">
-        <div class="panel-header">
-          <div>
-            <div class="panel-title">Detail & Schritte</div>
-            <div class="panel-subtitle">
-              Konkrete Prozess-Schritte, die pro Thema abgearbeitet werden.
-            </div>
-          </div>
-          <div class="toolbar-buttons">
-            <button class="btn btn-primary" id="btnBackToCategories" style="display:none;">
-              ← Zu den Kategorien
-            </button>
-            <button class="btn" id="btnBackToTopics" style="display:none;">
-              ← Zur Themenliste
-            </button>
-            <button class="btn btn-danger" id="btnResetCurrent" style="display:none;">
-              Reset Thema
-            </button>
-          </div>
-        </div>
-
-        <div class="detail-header">
-          <div class="detail-title" id="detailTitle">Kein Thema ausgewählt</div>
-          <div class="detail-meta" id="detailMeta"></div>
-          <div class="detail-desc" id="detailDesc">
-            Wähle links zuerst eine Kategorie und danach ein Thema, um die Schritt-für-Schritt-Anleitung zu sehen.
-          </div>
-        </div>
-
-        <div class="progress-row" id="progressRow" style="display:none;">
-          <div class="progress-label" id="progressLabel">Fortschritt</div>
-          <div class="progressbar-wrap">
-            <div class="progressbar-inner" id="progressBarInner"></div>
-          </div>
-          <div class="progress-percentage" id="progressPercent">0%</div>
-        </div>
-
-        <ul class="steps-list" id="stepsList"></ul>
-        <div class="empty" id="detailEmpty" style="display:none;">
-          Keine Schritte hinterlegt. Bitte Daten im Sheet prüfen.
-        </div>
-      </section>
+    <div id="app">
+      <div class="loading"><span class="dot"></span> Inhalte werden geladen …</div>
     </div>
   </div>
 
-  <script src="js/app.js"></script>
+<script>
+/* ===========================================================
+   Sheet-Spalten (von dir):
+   kategorie | kategorie_reihenfolge | unterkategorie | reihenfolge
+   titel | inhalt | aktiv | schritt1..schritt20
+   =========================================================== */
+
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCXjTKGowsZ4NrxhRqueZyKaDA5ny-lSAuxNaxhCOmlk_SAmI9WBGCRnY-yeOzKOvNl_DuD4T49EMK/pub?output=csv";
+
+const STORAGE_KEY = "truckshop-hilfe-done-v2";
+let doneState = loadDone();
+
+let topics = []; // normalisierte Themen aus dem Sheet
+let state = { level: "start", category: null, subcategory: null, topicId: null };
+
+const appEl = document.getElementById("app");
+const searchRowEl = document.getElementById("searchRow");
+const searchInputEl = document.getElementById("searchInput");
+const navlineEl = document.getElementById("navline");
+const crumbsEl = document.getElementById("crumbs");
+const backBtn = document.getElementById("backBtn");
+
+const norm = (v) => (v ?? "").toString().trim();
+const nlow = (v) => norm(v).toLowerCase();
+
+function loadDone(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
+  catch { return {}; }
+}
+function saveDone(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(doneState)); }
+
+async function loadCSV(url){
+  const res = await fetch(url, { cache: "no-store" });
+  if(!res.ok) throw new Error("CSV konnte nicht geladen werden. Status: " + res.status);
+  const text = await res.text();
+  return parseCSV(text);
+}
+function parseCSV(csvText){
+  const lines = csvText.replace(/\r/g,"").split("\n").filter(l => l.trim().length);
+  if(!lines.length) return [];
+  const header = splitCSVLine(lines[0]).map(h => h.trim());
+  const out = [];
+
+  for(let i=1;i<lines.length;i++){
+    const cols = splitCSVLine(lines[i]);
+    const obj = {};
+    header.forEach((h, idx) => obj[h] = cols[idx] ?? "");
+    out.push(obj);
+  }
+  return out;
+}
+function splitCSVLine(line){
+  const result = [];
+  let cur = "";
+  let inQ = false;
+
+  for(let i=0;i<line.length;i++){
+    const ch = line[i];
+    if(ch === '"'){
+      if(inQ && line[i+1] === '"'){ cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if(ch === "," && !inQ){
+      result.push(cur); cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+/* ---------- Helpers ---------- */
+function isActive(v){
+  const x = nlow(v);
+  if(!x) return true; // wenn leer -> als aktiv behandeln
+  return ["1","true","ja","yes","y","aktiv","x"].includes(x);
+}
+
+function emojiFor(level, label){
+  const t = nlow(label);
+  if(level === "cat"){
+    if(t.includes("strom")) return "⚡";
+    if(t.includes("wasser")) return "💧";
+    if(t.includes("hydraul")) return "🛢️";
+    if(t.includes("licht") || t.includes("beleucht")) return "💡";
+    if(t.includes("brem")) return "🛑";
+    if(t.includes("reifen") || t.includes("rad")) return "🛞";
+    if(t.includes("druck") || t.includes("luft")) return "💨";
+    return "📁";
+  }
+  if(level === "sub") return "🧩";
+  if(level === "topic") return "📌";
+  return "📄";
+}
+
+function uniqueBy(arr, fnKey){
+  const m = new Map();
+  for(const item of arr){
+    const k = fnKey(item);
+    if(!m.has(k)) m.set(k, item);
+  }
+  return Array.from(m.values());
+}
+
+function renderTiles(items, onClick){
+  const grid = document.createElement("div");
+  grid.className = "grid";
+
+  items.forEach(it => {
+    const tile = document.createElement("div");
+    tile.className = "tile";
+    tile.onclick = () => onClick(it);
+
+    const top = document.createElement("div");
+    top.className = "tileTop";
+
+    const emoji = document.createElement("div");
+    emoji.className = "emoji";
+    emoji.textContent = it.emoji || "📁";
+
+    const txt = document.createElement("div");
+    const h = document.createElement("p");
+    h.className = "tileTitle";
+    h.textContent = it.title;
+
+    const meta = document.createElement("p");
+    meta.className = "tileMeta";
+    meta.textContent = it.meta || "";
+
+    txt.appendChild(h);
+    txt.appendChild(meta);
+
+    top.appendChild(emoji);
+    top.appendChild(txt);
+
+    tile.appendChild(top);
+    grid.appendChild(tile);
+  });
+
+  return grid;
+}
+
+/* ---------- Navigation ---------- */
+function setNav(){
+  if(state.level === "start"){
+    navlineEl.style.display = "none";
+    crumbsEl.innerHTML = "";
+    return;
+  }
+  navlineEl.style.display = "flex";
+
+  const parts = [];
+  parts.push({label:"Start", level:"start"});
+  if(state.category) parts.push({label: state.category, level:"sub"});
+  if(state.subcategory) parts.push({label: state.subcategory, level:"topics"});
+  if(state.topicId){
+    const t = topics.find(x => x.id === state.topicId);
+    if(t) parts.push({label: t.title, level:"topic"});
+  }
+
+  crumbsEl.innerHTML = "";
+  parts.forEach((p, idx) => {
+    const span = document.createElement("span");
+    span.style.cursor = (idx < parts.length-1) ? "pointer" : "default";
+    span.textContent = p.label;
+    if(idx < parts.length-1){
+      span.onclick = () => jumpToLevel(p.level);
+    }
+    crumbsEl.appendChild(span);
+    if(idx < parts.length-1){
+      const sep = document.createElement("span");
+      sep.className = "sep";
+      sep.textContent = "›";
+      crumbsEl.appendChild(sep);
+    }
+  });
+}
+
+function jumpToLevel(level){
+  if(level === "start"){
+    state = { level:"start", category:null, subcategory:null, topicId:null };
+  } else if(level === "sub"){
+    state = { level:"sub", category: state.category, subcategory:null, topicId:null };
+  } else if(level === "topics"){
+    state = { level:"topics", category: state.category, subcategory: state.subcategory, topicId:null };
+  }
+  render();
+}
+
+/* ---------- Screens ---------- */
+function renderStart(){
+  searchRowEl.style.display = "flex";
+
+  const cats = uniqueBy(topics, t => t.category)
+    .sort((a,b) => (a.catOrder - b.catOrder) || a.category.localeCompare(b.category))
+    .map(t => ({
+      title: t.category,
+      emoji: emojiFor("cat", t.category),
+      meta: "Kategorie auswählen"
+    }));
+
+  appEl.innerHTML = "";
+  appEl.appendChild(renderTiles(cats, (it) => {
+    state.level = "sub";
+    state.category = it.title;
+    state.subcategory = null;
+    state.topicId = null;
+    render();
+  }));
+
+  const results = document.createElement("div");
+  results.className = "results";
+  results.id = "results";
+  appEl.appendChild(results);
+
+  bindSearch();
+}
+
+function renderSubcategories(){
+  searchRowEl.style.display = "none";
+
+  const subsRaw = topics.filter(t => t.category === state.category && t.subcategory);
+  const subs = uniqueBy(subsRaw, t => t.subcategory)
+    .sort((a,b) => (a.subOrder - b.subOrder) || a.subcategory.localeCompare(b.subcategory))
+    .map(t => ({
+      title: t.subcategory,
+      emoji: emojiFor("sub", t.subcategory),
+      meta: "Unterkategorie auswählen"
+    }));
+
+  appEl.innerHTML = "";
+  appEl.appendChild(renderTiles(subs, (it) => {
+    state.level = "topics";
+    state.subcategory = it.title;
+    state.topicId = null;
+    render();
+  }));
+}
+
+function renderTopics(){
+  searchRowEl.style.display = "none";
+
+  const tops = topics
+    .filter(t => t.category === state.category && t.subcategory === state.subcategory)
+    .sort((a,b) => a.title.localeCompare(b.title))
+    .map(t => ({
+      id: t.id,
+      title: t.title,
+      emoji: emojiFor("topic", t.title),
+      meta: "Thema öffnen"
+    }));
+
+  appEl.innerHTML = "";
+  appEl.appendChild(renderTiles(tops, (it) => {
+    state.level = "topic";
+    state.topicId = it.id;
+    render();
+  }));
+}
+
+function renderTopic(){
+  searchRowEl.style.display = "none";
+  const t = topics.find(x => x.id === state.topicId);
+  if(!t){
+    appEl.innerHTML = "";
+    const box = document.createElement("div");
+    box.className = "panel";
+    box.innerHTML = `<h3>Hinweis</h3><p>Thema nicht gefunden.</p>`;
+    appEl.appendChild(box);
+    return;
+  }
+
+  const topicKey = t.id;
+  const steps = t.steps || [];
+  const doneCount = steps.reduce((acc, s, idx) => acc + (doneState[topicKey + "::" + idx] ? 1 : 0), 0);
+
+  appEl.innerHTML = "";
+
+  const layout = document.createElement("div");
+  layout.className = "topicLayout";
+
+  const left = document.createElement("div");
+  left.className = "steps";
+
+  if(t.content){
+    const intro = document.createElement("div");
+    intro.className = "intro";
+    intro.textContent = t.content;
+    left.appendChild(intro);
+  }
+
+  steps.forEach((text, idx) => {
+    const row = document.createElement("div");
+    row.className = "step";
+
+    const box = document.createElement("div");
+    box.className = "check" + (doneState[topicKey + "::" + idx] ? " done" : "");
+    box.onclick = () => {
+      const k = topicKey + "::" + idx;
+      doneState[k] = !doneState[k];
+      saveDone();
+      render();
+    };
+
+    const txt = document.createElement("div");
+    txt.className = "stepText";
+
+    const title = document.createElement("b");
+    title.textContent = "Schritt " + (idx + 1);
+
+    const hint = document.createElement("div");
+    hint.className = "hint";
+    hint.textContent = text;
+
+    txt.appendChild(title);
+    txt.appendChild(hint);
+
+    row.appendChild(box);
+    row.appendChild(txt);
+    left.appendChild(row);
+  });
+
+  const right = document.createElement("div");
+  right.className = "panel";
+
+  const h = document.createElement("h3");
+  h.textContent = "Fortschritt";
+  right.appendChild(h);
+
+  const p1 = document.createElement("p");
+  p1.innerHTML = `<b>${doneCount}</b> von <b>${steps.length}</b> Schritten erledigt`;
+  right.appendChild(p1);
+
+  const pct = steps.length ? Math.round((doneCount/steps.length)*100) : 0;
+  const p2 = document.createElement("p");
+  p2.textContent = `Status: ${pct}%`;
+  right.appendChild(p2);
+
+  const resetBtn = document.createElement("button");
+  resetBtn.className = "btn";
+  resetBtn.type = "button";
+  resetBtn.textContent = "Fortschritt für dieses Thema zurücksetzen";
+  resetBtn.style.marginTop = "10px";
+  resetBtn.onclick = () => {
+    for(let i=0;i<steps.length;i++){
+      delete doneState[topicKey + "::" + i];
+    }
+    saveDone();
+    render();
+  };
+  right.appendChild(resetBtn);
+
+  layout.appendChild(left);
+  layout.appendChild(right);
+  appEl.appendChild(layout);
+}
+
+/* ---------- Search (Start only) ---------- */
+let searchBound = false;
+function bindSearch(){
+  if(searchBound) return;
+  searchBound = true;
+
+  searchInputEl.addEventListener("input", () => {
+    const q = nlow(searchInputEl.value);
+    const resEl = document.getElementById("results");
+    if(!resEl) return;
+
+    if(!q){
+      resEl.style.display = "none";
+      resEl.innerHTML = "";
+      return;
+    }
+
+    const hits = topics.filter(t => {
+      const hay = [
+        t.category, t.subcategory, t.title, t.content, ...(t.steps || [])
+      ].join(" ").toLowerCase();
+      return hay.includes(q);
+    }).slice(0, 20);
+
+    resEl.innerHTML = "";
+    resEl.style.display = "flex";
+
+    hits.forEach(t => {
+      const item = document.createElement("div");
+      item.className = "resultItem";
+
+      const tt = document.createElement("p");
+      tt.className = "rTitle";
+      tt.textContent = t.title || "Treffer";
+
+      const m = document.createElement("p");
+      m.className = "rMeta";
+      m.textContent = `${t.category}${t.subcategory ? " › " + t.subcategory : ""} › ${t.title}`;
+
+      item.appendChild(tt);
+      item.appendChild(m);
+
+      item.onclick = () => {
+        state.level = "topic";
+        state.category = t.category;
+        state.subcategory = t.subcategory;
+        state.topicId = t.id;
+        render();
+      };
+
+      resEl.appendChild(item);
+    });
+
+    if(!hits.length){
+      const none = document.createElement("div");
+      none.className = "resultItem";
+      none.textContent = "Keine Treffer.";
+      resEl.appendChild(none);
+    }
+  });
+}
+
+/* ---------- Main render ---------- */
+function render(){
+  setNav();
+
+  backBtn.onclick = () => {
+    if(state.level === "topic"){
+      state.level = "topics";
+      state.topicId = null;
+    } else if(state.level === "topics"){
+      state.level = "sub";
+      state.subcategory = null;
+    } else if(state.level === "sub"){
+      state.level = "start";
+      state.category = null;
+    }
+    render();
+  };
+
+  if(state.level === "start") renderStart();
+  else if(state.level === "sub") renderSubcategories();
+  else if(state.level === "topics") renderTopics();
+  else if(state.level === "topic") renderTopic();
+}
+
+/* ---------- Boot ---------- */
+(async function init(){
+  try{
+    const raw = await loadCSV(CSV_URL);
+
+    // Normalize: 1 Zeile = 1 Thema inkl. schritt1..20
+    topics = raw
+      .filter(r => isActive(r["aktiv"]))
+      .map((r, idx) => {
+        const category = norm(r["kategorie"]);
+        const subcategory = norm(r["unterkategorie"]);
+        const title = norm(r["titel"]);
+        const content = norm(r["inhalt"]);
+
+        const catOrder = Number(norm(r["kategorie_reihenfolge"]) || 9999);
+        const subOrder = Number(norm(r["reihenfolge"]) || 9999);
+
+        const steps = [];
+        for(let i=1;i<=20;i++){
+          const v = norm(r["schritt" + i]);
+          if(v) steps.push(v);
+        }
+
+        // stabile ID (auch wenn Reihenfolge im Sheet wechselt)
+        const id = [
+          nlow(category), nlow(subcategory), nlow(title)
+        ].join("||");
+
+        return { id, category, subcategory, title, content, steps, catOrder, subOrder };
+      })
+      .filter(t => t.category && t.subcategory && t.title);
+
+    render();
+  }catch(err){
+    appEl.innerHTML = "";
+    const box = document.createElement("div");
+    box.className = "panel";
+    box.innerHTML = `
+      <h3>Fehler beim Laden</h3>
+      <p>${(err && err.message) ? err.message : "Unbekannter Fehler"}</p>
+      <p>Prüfe bitte, ob die CSV-URL wirklich öffentlich abrufbar ist (publish) und ob die Header exakt stimmen.</p>
+    `;
+    appEl.appendChild(box);
+    searchRowEl.style.display = "none";
+    navlineEl.style.display = "none";
+  }
+})();
+</script>
 </body>
 </html>
