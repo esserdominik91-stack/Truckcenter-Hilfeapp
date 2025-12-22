@@ -6,7 +6,10 @@
 // 2) Unterkategorie (Liste, nur einmal je Kategorie)
 // 3) Themen/Titel innerhalb der Unterkategorie
 //
-// Rechts: Detail + Fortschritt + Schritte
+// Rechts: Detail + Fortschritt + Schritte (BLEIBT)
+// Erweiterung:
+// - Pro Schritt: Bild/PDF/YouTube via schrittX_bild/pdf/youtube
+// - Kategorie "Video": Zeilen-Spalte youtube (Embed)
 // ==============================================
 
 const CSV_URL =
@@ -16,7 +19,7 @@ const STORAGE_KEY = "truckcenter-hilfe-steps-done-v3";
 
 let rows = [];
 let categories = [];           // [{ name, order, topicCount }]
-let topics = [];               // alle Themen (Probleme)
+let topics = [];               // alle Themen
 let topicsByCategory = new Map();
 
 let currentCategory = null;
@@ -99,6 +102,44 @@ function normHeader(h) {
 }
 
 // ---------------------------
+// Drive / YouTube Helper
+// ---------------------------
+function toDriveDirectImage(url) {
+  if (!url) return "";
+  const u = String(url).trim();
+  const m = u.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if (m && m[1]) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+  return u;
+}
+
+function toDrivePreviewPdf(url) {
+  if (!url) return "";
+  const u = String(url).trim();
+  const m = u.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if (m && m[1]) return `https://drive.google.com/file/d/${m[1]}/preview`;
+  return u;
+}
+
+function getYouTubeId(url) {
+  if (!url) return "";
+  const u = String(url).trim();
+
+  let m = u.match(/youtu\.be\/([A-Za-z0-9_-]{6,})/);
+  if (m) return m[1];
+
+  m = u.match(/[?&]v=([A-Za-z0-9_-]{6,})/);
+  if (m) return m[1];
+
+  m = u.match(/youtube\.com\/shorts\/([A-Za-z0-9_-]{6,})/);
+  if (m) return m[1];
+
+  m = u.match(/youtube\.com\/embed\/([A-Za-z0-9_-]{6,})/);
+  if (m) return m[1];
+
+  return "";
+}
+
+// ---------------------------
 // LocalStorage für Häkchen
 // ---------------------------
 function loadDoneSteps() {
@@ -149,37 +190,29 @@ function buildModelFromRows(allRows) {
   const idxCategory = idx(["kategorie", "category", "bereich"]);
   const idxTopic = idx(["thema", "topic", "titel", "title"]);
   const idxSub = idx(["unterkategorie", "sub", "bereich2"]);
-  const idxDesc = idx([
-    "beschreibung",
-    "kurzbeschreibung",
-    "description",
-    "info",
-    "inhalt",
-  ]);
-  const idxCatOrder = idx([
-    "kategorie_reihenfolge",
-    "cat_order",
-    "category_order",
-  ]);
-  const idxTopicOrder = idx([
-    "thema_reihenfolge",
-    "topic_order",
-    "sort",
-    "reihenfolge",
-  ]);
+  const idxDesc = idx(["beschreibung", "kurzbeschreibung", "description", "info", "inhalt"]);
+  const idxCatOrder = idx(["kategorie_reihenfolge", "cat_order", "category_order"]);
+  const idxTopicOrder = idx(["thema_reihenfolge", "topic_order", "sort", "reihenfolge"]);
+  const idxYouTubeRow = idx(["youtube", "youtube_url", "video"]);
 
   if (idxCategory === -1 || idxTopic === -1) {
-    throw new Error(
-      "Spalten 'Kategorie' und/oder 'Thema' nicht gefunden. Bitte im Sheet prüfen."
-    );
+    throw new Error("Spalten 'Kategorie' und/oder 'Thema' nicht gefunden. Bitte im Sheet prüfen.");
   }
 
-  // Spalten „Schritt 1 … Schritt 20“ / „Step 1 …“
+  // NUR echte Schrittspalten: schritt1, schritt2, ... (nicht schritt1_bild)
   const stepIndices = [];
   headersNorm.forEach((h, i) => {
-    if (h.startsWith("schritt") || h.startsWith("step")) {
-      stepIndices.push(i);
-    }
+    if (/^(schritt|step)\d+$/.test(h)) stepIndices.push(i);
+  });
+
+  // Für jede Schrittspalte die optionalen Media-Spalten finden
+  const stepMedia = []; // pro StepPos: { imgIdx, pdfIdx, ytIdx }
+  stepIndices.forEach((sIdx) => {
+    const base = headersNorm[sIdx]; // z.B. "schritt1"
+    const imgIdx = headersNorm.findIndex((h) => h === `${base}_bild`);
+    const pdfIdx = headersNorm.findIndex((h) => h === `${base}_pdf`);
+    const ytIdx = headersNorm.findIndex((h) => h === `${base}_youtube`);
+    stepMedia.push({ imgIdx, pdfIdx, ytIdx });
   });
 
   const topicsTmp = [];
@@ -193,37 +226,44 @@ function buildModelFromRows(allRows) {
     const topicName = (row[idxTopic] || "").trim();
     if (!topicName) continue;
 
-    const subName =
-      idxSub >= 0 && row[idxSub] ? String(row[idxSub]).trim() : "";
-    const desc =
-      idxDesc >= 0 && row[idxDesc] ? String(row[idxDesc]).trim() : "";
+    const subName = idxSub >= 0 && row[idxSub] ? String(row[idxSub]).trim() : "";
+    const desc = idxDesc >= 0 && row[idxDesc] ? String(row[idxDesc]).trim() : "";
 
     const catOrder =
-      idxCatOrder >= 0 && row[idxCatOrder]
-        ? Number(row[idxCatOrder]) || 9999
-        : 9999;
+      idxCatOrder >= 0 && row[idxCatOrder] ? Number(row[idxCatOrder]) || 9999 : 9999;
+
     const topicOrder =
-      idxTopicOrder >= 0 && row[idxTopicOrder]
-        ? Number(row[idxTopicOrder]) || 9999
-        : 9999;
+      idxTopicOrder >= 0 && row[idxTopicOrder] ? Number(row[idxTopicOrder]) || 9999 : 9999;
+
+    const youtubeRowRaw =
+      idxYouTubeRow >= 0 && row[idxYouTubeRow] ? String(row[idxYouTubeRow]).trim() : "";
 
     const steps = [];
     stepIndices.forEach((sIdx, sPos) => {
       const sText = row[sIdx] ? String(row[sIdx]).trim() : "";
-      if (sText) {
-        steps.push({
-          id: `r${r}-s${sPos}`,
-          text: sText,
-        });
-      }
+      if (!sText) return;
+
+      const mediaDef = stepMedia[sPos] || {};
+      const imgRaw = mediaDef.imgIdx >= 0 && row[mediaDef.imgIdx] ? String(row[mediaDef.imgIdx]).trim() : "";
+      const pdfRaw = mediaDef.pdfIdx >= 0 && row[mediaDef.pdfIdx] ? String(row[mediaDef.pdfIdx]).trim() : "";
+      const ytRaw  = mediaDef.ytIdx  >= 0 && row[mediaDef.ytIdx]  ? String(row[mediaDef.ytIdx]).trim()  : "";
+
+      steps.push({
+        id: `r${r}-s${sPos}`,
+        text: sText,
+        img: imgRaw ? toDriveDirectImage(imgRaw) : "",
+        pdf: pdfRaw ? toDrivePreviewPdf(pdfRaw) : "",
+        yt:  ytRaw ? getYouTubeId(ytRaw) : "",
+      });
     });
 
     const topicObj = {
       id: `row-${r}`,
       category: catName,
-      topic: topicName,        // = Titel
+      topic: topicName,
       subcategory: subName,
       description: desc,
+      youtube: youtubeRowRaw ? getYouTubeId(youtubeRowRaw) : "",
       catOrder,
       topicOrder,
       steps,
@@ -232,11 +272,7 @@ function buildModelFromRows(allRows) {
     topicsTmp.push(topicObj);
 
     if (!categoriesMap.has(catName)) {
-      categoriesMap.set(catName, {
-        name: catName,
-        order: catOrder,
-        topicCount: 0,
-      });
+      categoriesMap.set(catName, { name: catName, order: catOrder, topicCount: 0 });
     }
     const catObj = categoriesMap.get(catName);
     catObj.topicCount += 1;
@@ -257,9 +293,7 @@ function buildModelFromRows(allRows) {
 
   topicsByCategory = new Map();
   for (const t of topics) {
-    if (!topicsByCategory.has(t.category)) {
-      topicsByCategory.set(t.category, []);
-    }
+    if (!topicsByCategory.has(t.category)) topicsByCategory.set(t.category, []);
     topicsByCategory.get(t.category).push(t);
   }
 }
@@ -267,9 +301,9 @@ function buildModelFromRows(allRows) {
 // ---------------------------
 // UI-Helfer
 // ---------------------------
-
 function getIconForCategory(catName) {
   const c = (catName || "").toLowerCase();
+  if (c.includes("video")) return "🎬";
   if (c.includes("problem")) return "⚠️";
   if (c.includes("allgemein")) return "ℹ️";
   if (c.includes("test")) return "🧪";
@@ -286,9 +320,7 @@ function getIconForSubcategory(subName) {
 }
 
 function getIconForTopic(t) {
-  if (t.subcategory) {
-    return getIconForSubcategory(t.subcategory);
-  }
+  if (t.subcategory) return getIconForSubcategory(t.subcategory);
   return getIconForCategory(t.category);
 }
 
@@ -342,9 +374,7 @@ function createCategoryCard(cat) {
   const meta = document.createElement("div");
   meta.className = "card-meta";
   meta.textContent =
-    topicsInCat.length === 1
-      ? "1 Thema in dieser Kategorie"
-      : `${topicsInCat.length} Themen in dieser Kategorie`;
+    topicsInCat.length === 1 ? "1 Thema in dieser Kategorie" : `${topicsInCat.length} Themen in dieser Kategorie`;
 
   left.appendChild(title);
   left.appendChild(meta);
@@ -360,6 +390,7 @@ function createCategoryCard(cat) {
   badge.textContent = `Prio ${cat.order === 9999 ? "∞" : cat.order}`;
   right.appendChild(badge);
 
+  // Fortschritt-Pill bleibt wie bisher
   if (totalSteps > 0) {
     const progressPill = document.createElement("div");
     progressPill.className = "topic-progress-pill";
@@ -419,9 +450,7 @@ function createSubcategoryRow(catName, subName, topicsInSub) {
   const desc = document.createElement("div");
   desc.className = "topic-desc";
   desc.textContent =
-    topicsInSub.length === 1
-      ? "1 Thema in dieser Unterkategorie."
-      : `${topicsInSub.length} Themen in dieser Unterkategorie.`;
+    topicsInSub.length === 1 ? "1 Thema in dieser Unterkategorie." : `${topicsInSub.length} Themen in dieser Unterkategorie.`;
 
   main.appendChild(title);
   main.appendChild(desc);
@@ -438,10 +467,7 @@ function createSubcategoryRow(catName, subName, topicsInSub) {
 
   const stepsInfo = document.createElement("span");
   stepsInfo.className = "topic-steps";
-  stepsInfo.textContent =
-    totalSteps === 1
-      ? "1 Schritt insgesamt"
-      : `${totalSteps} Schritte insgesamt`;
+  stepsInfo.textContent = totalSteps === 1 ? "1 Schritt insgesamt" : `${totalSteps} Schritte insgesamt`;
 
   const progressPill = document.createElement("div");
   progressPill.className = "topic-progress-pill";
@@ -503,9 +529,7 @@ function createTopicRow(t) {
 
   const desc = document.createElement("div");
   desc.className = "topic-desc";
-  desc.textContent =
-    t.description ||
-    "Hinweise und Schritte zur Lösung dieses Themas.";
+  desc.textContent = t.description || "Hinweise und Schritte zur Lösung dieses Themas.";
 
   main.appendChild(sub);
   main.appendChild(title);
@@ -534,8 +558,7 @@ function createTopicRow(t) {
   bar.appendChild(barInner);
 
   const txt = document.createElement("span");
-  txt.textContent =
-    total > 0 ? `${Math.round(ratio * 100)}%` : "0%";
+  txt.textContent = total > 0 ? `${Math.round(ratio * 100)}%` : "0%";
 
   progressPill.appendChild(bar);
   progressPill.appendChild(txt);
@@ -563,19 +586,14 @@ function renderCategories() {
   searchHintEl.textContent = "";
 
   leftPanelTitleEl.textContent = "Kategorien";
-  leftPanelSubtitleEl.textContent =
-    "1. Kategorie wählen · 2. Unterkategorie wählen · 3. Thema wählen.";
-  leftCounterEl.textContent =
-    categories.length === 1
-      ? "1 Kategorie"
-      : `${categories.length} Kategorien`;
+  leftPanelSubtitleEl.textContent = "1. Kategorie wählen · 2. Unterkategorie wählen · 3. Thema wählen.";
+  leftCounterEl.textContent = categories.length === 1 ? "1 Kategorie" : `${categories.length} Kategorien`;
 
   breadcrumbsEl.innerHTML = "";
 
   categoriesViewEl.innerHTML = "";
   if (!categories.length) {
-    categoriesViewEl.innerHTML =
-      '<div class="empty">Keine Kategorien gefunden. Bitte Sheet prüfen.</div>';
+    categoriesViewEl.innerHTML = '<div class="empty">Keine Kategorien gefunden. Bitte Sheet prüfen.</div>';
     return;
   }
 
@@ -600,15 +618,11 @@ function renderSubcategoriesForCategory(catName) {
 
   const list = topicsByCategory.get(catName) || [];
 
-  // Einzigartige Unterkategorien bauen
   const subMap = new Map(); // subName -> { topics: [], order }
   list.forEach((t) => {
     const subName = t.subcategory || "Allgemein";
     if (!subMap.has(subName)) {
-      subMap.set(subName, {
-        topics: [],
-        order: t.topicOrder,
-      });
+      subMap.set(subName, { topics: [], order: t.topicOrder });
     }
     const entry = subMap.get(subName);
     entry.topics.push(t);
@@ -627,12 +641,8 @@ function renderSubcategoriesForCategory(catName) {
 
   leftPanelTitleEl.textContent = "Unterkategorien";
   leftPanelSubtitleEl.textContent = `Kategorie: ${catName}`;
-  leftCounterEl.textContent =
-    subEntries.length === 1
-      ? "1 Unterkategorie"
-      : `${subEntries.length} Unterkategorien`;
+  leftCounterEl.textContent = subEntries.length === 1 ? "1 Unterkategorie" : `${subEntries.length} Unterkategorien`;
 
-  // Breadcrumbs
   breadcrumbsEl.innerHTML = "";
   const homeBtn = document.createElement("button");
   homeBtn.textContent = "Kategorien";
@@ -649,13 +659,10 @@ function renderSubcategoriesForCategory(catName) {
   breadcrumbsEl.appendChild(catStrong);
 
   if (!subEntries.length) {
-    topicsViewEl.innerHTML =
-      '<div class="empty">In dieser Kategorie sind noch keine Unterkategorien/Themen angelegt.</div>';
+    topicsViewEl.innerHTML = '<div class="empty">In dieser Kategorie sind noch keine Unterkategorien/Themen angelegt.</div>';
   } else {
     subEntries.forEach(([subName, data]) => {
-      topicsViewEl.appendChild(
-        createSubcategoryRow(catName, subName, data.topics)
-      );
+      topicsViewEl.appendChild(createSubcategoryRow(catName, subName, data.topics));
     });
   }
 
@@ -675,9 +682,7 @@ function renderTopicsForSubcategory(catName, subName) {
   currentTopic = null;
 
   const allInCat = topicsByCategory.get(catName) || [];
-  const list = allInCat.filter(
-    (t) => (t.subcategory || "Allgemein") === subName
-  );
+  const list = allInCat.filter((t) => (t.subcategory || "Allgemein") === subName);
 
   categoriesViewEl.style.display = "none";
   topicsViewEl.style.display = "flex";
@@ -687,10 +692,8 @@ function renderTopicsForSubcategory(catName, subName) {
 
   leftPanelTitleEl.textContent = "Themen";
   leftPanelSubtitleEl.textContent = `Kategorie: ${catName} · Unterkategorie: ${subName}`;
-  leftCounterEl.textContent =
-    list.length === 1 ? "1 Thema" : `${list.length} Themen`;
+  leftCounterEl.textContent = list.length === 1 ? "1 Thema" : `${list.length} Themen`;
 
-  // Breadcrumbs
   breadcrumbsEl.innerHTML = "";
   const homeBtn = document.createElement("button");
   homeBtn.textContent = "Kategorien";
@@ -701,9 +704,7 @@ function renderTopicsForSubcategory(catName, subName) {
 
   const catBtn = document.createElement("button");
   catBtn.textContent = catName;
-  catBtn.addEventListener("click", () =>
-    renderSubcategoriesForCategory(catName)
-  );
+  catBtn.addEventListener("click", () => renderSubcategoriesForCategory(catName));
 
   const sep2 = document.createElement("span");
   sep2.textContent = "›";
@@ -718,8 +719,7 @@ function renderTopicsForSubcategory(catName, subName) {
   breadcrumbsEl.appendChild(subStrong);
 
   if (!list.length) {
-    topicsViewEl.innerHTML =
-      '<div class="empty">In dieser Unterkategorie sind noch keine Themen angelegt.</div>';
+    topicsViewEl.innerHTML = '<div class="empty">In dieser Unterkategorie sind noch keine Themen angelegt.</div>';
   } else {
     list.forEach((t) => {
       topicsViewEl.appendChild(createTopicRow(t));
@@ -747,13 +747,8 @@ function renderSearchResults(matches, query) {
   searchResultsViewEl.style.display = "none";
 
   leftPanelTitleEl.textContent = "Suchergebnisse";
-  leftPanelSubtitleEl.textContent = query
-    ? `Gefiltert nach: "${query}"`
-    : "Suche über alle Themen.";
-  leftCounterEl.textContent =
-    matches.length === 1
-      ? "1 Treffer"
-      : `${matches.length} Treffer`;
+  leftPanelSubtitleEl.textContent = query ? `Gefiltert nach: "${query}"` : "Suche über alle Themen.";
+  leftCounterEl.textContent = matches.length === 1 ? "1 Treffer" : `${matches.length} Treffer`;
 
   breadcrumbsEl.innerHTML = "";
   const homeBtn = document.createElement("button");
@@ -765,22 +760,18 @@ function renderSearchResults(matches, query) {
   breadcrumbsEl.appendChild(homeBtn);
 
   if (!query || query.length < 2) {
-    topicsViewEl.innerHTML =
-      '<div class="empty">Mindestens 2 Zeichen eingeben, um zu suchen.</div>';
-    searchHintEl.textContent =
-      "Hinweis: Es wird in Kategorie, Unterkategorie, Titel und Schritten gesucht.";
+    topicsViewEl.innerHTML = '<div class="empty">Mindestens 2 Zeichen eingeben, um zu suchen.</div>';
+    searchHintEl.textContent = "Hinweis: Es wird in Kategorie, Unterkategorie, Titel und Schritten gesucht.";
     return;
   }
 
   if (!matches.length) {
-    topicsViewEl.innerHTML =
-      '<div class="empty">Keine Treffer. Suche anpassen oder Kategorie direkt wählen.</div>';
+    topicsViewEl.innerHTML = '<div class="empty">Keine Treffer. Suche anpassen oder Kategorie direkt wählen.</div>';
     searchHintEl.textContent = "";
     return;
   }
 
-  searchHintEl.textContent =
-    "Treffer aus allen Kategorien. Klick auf ein Thema öffnet die Schritte.";
+  searchHintEl.textContent = "Treffer aus allen Kategorien. Klick auf ein Thema öffnet die Schritte.";
 
   matches.forEach((t) => {
     topicsViewEl.appendChild(createTopicRow(t));
@@ -805,13 +796,12 @@ function handleSearchInput() {
     if (
       t.topic.toLowerCase().includes(qLower) ||
       t.category.toLowerCase().includes(qLower) ||
-      (t.subcategory && t.subcategory.toLowerCase().includes(qLower))
+      (t.subcategory && t.subcategory.toLowerCase().includes(qLower)) ||
+      (t.youtube && t.youtube.toLowerCase().includes(qLower))
     ) {
       return true;
     }
-    return t.steps.some((s) =>
-      s.text.toLowerCase().includes(qLower)
-    );
+    return t.steps.some((s) => s.text.toLowerCase().includes(qLower));
   });
 
   renderSearchResults(matches, q);
@@ -824,11 +814,13 @@ function renderDetailEmpty() {
   currentTopic = null;
   detailTitleEl.textContent = "Kein Thema ausgewählt";
   detailMetaEl.textContent = "";
-  detailDescEl.textContent =
-    "Wähle links zuerst eine Kategorie, dann eine Unterkategorie und danach ein Thema.";
+  detailDescEl.textContent = "Wähle links zuerst eine Kategorie, dann eine Unterkategorie und danach ein Thema.";
   stepsListEl.innerHTML = "";
   detailEmptyEl.style.display = "block";
   progressRowEl.style.display = "none";
+
+  const oldVideo = document.getElementById("topicVideoContainer");
+  if (oldVideo) oldVideo.remove();
 }
 
 function renderTopicDetail(topic) {
@@ -847,18 +839,14 @@ function renderTopicDetail(topic) {
 
   const catBtn = document.createElement("button");
   catBtn.textContent = topic.category;
-  catBtn.addEventListener("click", () =>
-    renderSubcategoriesForCategory(topic.category)
-  );
+  catBtn.addEventListener("click", () => renderSubcategoriesForCategory(topic.category));
 
   const sep2 = document.createElement("span");
   sep2.textContent = "›";
 
   const subBtn = document.createElement("button");
   subBtn.textContent = currentSubcategory;
-  subBtn.addEventListener("click", () =>
-    renderTopicsForSubcategory(topic.category, currentSubcategory)
-  );
+  subBtn.addEventListener("click", () => renderTopicsForSubcategory(topic.category, currentSubcategory));
 
   const sep3 = document.createElement("span");
   sep3.textContent = "›";
@@ -878,14 +866,40 @@ function renderTopicDetail(topic) {
 
   const metaParts = [];
   if (topic.category) metaParts.push(`Kategorie: ${topic.category}`);
-  if (topic.subcategory)
-    metaParts.push(`Unterkategorie: ${topic.subcategory}`);
+  if (topic.subcategory) metaParts.push(`Unterkategorie: ${topic.subcategory}`);
   metaParts.push(`${topic.steps.length} Schritte`);
-
   detailMetaEl.textContent = metaParts.join(" · ");
+
   detailDescEl.textContent =
-    topic.description ||
-    "Für dieses Thema ist keine zusätzliche Beschreibung hinterlegt.";
+    topic.description || "Für dieses Thema ist keine zusätzliche Beschreibung hinterlegt.";
+
+  // Remove previous video container if exists
+  const oldVideo = document.getElementById("topicVideoContainer");
+  if (oldVideo) oldVideo.remove();
+
+  // Kategorie "Video" (Zeilenebene)
+  if ((topic.category || "").trim().toLowerCase() === "video" && topic.youtube) {
+    const videoWrap = document.createElement("div");
+    videoWrap.id = "topicVideoContainer";
+    videoWrap.style.margin = "12px 0";
+
+    const iframe = document.createElement("iframe");
+    iframe.width = "100%";
+    iframe.height = "360";
+    iframe.src = `https://www.youtube.com/embed/${topic.youtube}`;
+    iframe.title = "YouTube video";
+    iframe.frameBorder = "0";
+    iframe.allow =
+      "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+    iframe.allowFullscreen = true;
+    iframe.style.borderRadius = "10px";
+
+    videoWrap.appendChild(iframe);
+
+    // Insert above steps list
+    const parent = stepsListEl.parentElement;
+    parent.insertBefore(videoWrap, stepsListEl);
+  }
 
   stepsListEl.innerHTML = "";
   detailEmptyEl.style.display = topic.steps.length ? "none" : "block";
@@ -905,11 +919,8 @@ function renderTopicDetail(topic) {
 
     checkbox.addEventListener("change", () => {
       setStepDone(globalId, checkbox.checked);
-      if (checkbox.checked) {
-        li.classList.add("done");
-      } else {
-        li.classList.remove("done");
-      }
+      if (checkbox.checked) li.classList.add("done");
+      else li.classList.remove("done");
       updateDetailProgress(topic);
     });
 
@@ -927,6 +938,56 @@ function renderTopicDetail(topic) {
     textWrap.appendChild(idxLabel);
     textWrap.appendChild(mainTxt);
 
+    // Medien unter dem Schritt
+    const mediaWrap = document.createElement("div");
+    mediaWrap.style.marginTop = "8px";
+    mediaWrap.style.display = "flex";
+    mediaWrap.style.flexDirection = "column";
+    mediaWrap.style.gap = "8px";
+
+    if (step.img && step.img.startsWith("http")) {
+      const img = document.createElement("img");
+      img.src = step.img;
+      img.loading = "lazy";
+      img.style.maxWidth = "100%";
+      img.style.height = "auto";
+      img.style.borderRadius = "10px";
+      mediaWrap.appendChild(img);
+    }
+
+    if (step.pdf && step.pdf.startsWith("http")) {
+      const a = document.createElement("a");
+      a.href = step.pdf;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = "PDF öffnen";
+      a.style.display = "inline-flex";
+      a.style.alignSelf = "flex-start";
+      a.style.padding = "8px 10px";
+      a.style.borderRadius = "10px";
+      a.style.textDecoration = "none";
+      a.style.border = "1px solid rgba(0,0,0,.15)";
+      mediaWrap.appendChild(a);
+    }
+
+    if (step.yt) {
+      const iframe = document.createElement("iframe");
+      iframe.width = "100%";
+      iframe.height = "315";
+      iframe.src = `https://www.youtube.com/embed/${step.yt}`;
+      iframe.title = "YouTube video";
+      iframe.frameBorder = "0";
+      iframe.allow =
+        "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+      iframe.allowFullscreen = true;
+      iframe.style.borderRadius = "10px";
+      mediaWrap.appendChild(iframe);
+    }
+
+    if (mediaWrap.children.length) {
+      textWrap.appendChild(mediaWrap);
+    }
+
     li.appendChild(checkbox);
     li.appendChild(textWrap);
 
@@ -937,8 +998,7 @@ function renderTopicDetail(topic) {
 
   btnBackToCategories.style.display = "inline-flex";
   btnBackToTopics.style.display = "inline-flex";
-  btnResetCurrent.style.display =
-    topic.steps.length > 0 ? "inline-flex" : "none";
+  btnResetCurrent.style.display = topic.steps.length > 0 ? "inline-flex" : "none";
 }
 
 function updateDetailProgress(topic) {
@@ -953,9 +1013,8 @@ function updateDetailProgress(topic) {
   progressBarInnerEl.style.transform = `scaleX(${ratio})`;
   progressPercentEl.textContent = `${Math.round(ratio * 100)}%`;
 
-  progressRowEl.querySelector(
-    "#progressLabel"
-  ).textContent = `Fortschritt: ${doneCount}/${total} Schritte`;
+  const lbl = progressRowEl.querySelector("#progressLabel");
+  if (lbl) lbl.textContent = `Fortschritt: ${doneCount}/${total} Schritte`;
 }
 
 // ---------------------------
@@ -999,9 +1058,7 @@ async function init() {
   try {
     const resp = await fetch(CSV_URL);
     if (!resp.ok) {
-      throw new Error(
-        `CSV konnte nicht geladen werden (HTTP ${resp.status}).`
-      );
+      throw new Error(`CSV konnte nicht geladen werden (HTTP ${resp.status}).`);
     }
     const text = await resp.text();
     rows = parseCSV(text);
@@ -1012,8 +1069,7 @@ async function init() {
     renderCategories();
   } catch (err) {
     console.error(err);
-    statusTextEl.textContent =
-      "Fehler beim Laden der Daten. Bitte URL / Freigabe prüfen.";
+    statusTextEl.textContent = "Fehler beim Laden der Daten. Bitte URL / Freigabe prüfen.";
     categoriesViewEl.innerHTML =
       '<div class="empty">CSV konnte nicht geladen werden. Bitte Google-Sheet-URL und Veröffentlichung ("Im Web veröffentlichen") prüfen.</div>';
   }
