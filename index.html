@@ -325,9 +325,13 @@
 
 <script>
 /* ===========================================================
-   Sheet-Spalten (von dir):
+   Sheet-Spalten:
    kategorie | kategorie_reihenfolge | unterkategorie | reihenfolge
    titel | inhalt | aktiv | schritt1..schritt20
+
+   ERWEITERUNG:
+   - Zeilenebene: youtube  (für Kategorie "Video")
+   - Pro Schritt: schrittX_bild | schrittX_pdf | schrittX_youtube
    =========================================================== */
 
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQCXjTKGowsZ4NrxhRqueZyKaDA5ny-lSAuxNaxhCOmlk_SAmI9WBGCRnY-yeOzKOvNl_DuD4T49EMK/pub?output=csv";
@@ -400,12 +404,45 @@ function isActive(v){
   return ["1","true","ja","yes","y","aktiv","x"].includes(x);
 }
 
+/* ---------- Drive / YouTube Helper ---------- */
+function toDriveDirectImage(url){
+  if(!url) return "";
+  const u = String(url).trim();
+  const m = u.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if(m && m[1]) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+  return u;
+}
+function toDrivePreviewPdf(url){
+  if(!url) return "";
+  const u = String(url).trim();
+  const m = u.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if(m && m[1]) return `https://drive.google.com/file/d/${m[1]}/preview`;
+  return u;
+}
+function getYouTubeId(url){
+  if(!url) return "";
+  const u = String(url).trim();
+
+  let m = u.match(/youtu\.be\/([A-Za-z0-9_-]{6,})/);
+  if(m) return m[1];
+
+  m = u.match(/[?&]v=([A-Za-z0-9_-]{6,})/);
+  if(m) return m[1];
+
+  m = u.match(/youtube\.com\/shorts\/([A-Za-z0-9_-]{6,})/);
+  if(m) return m[1];
+
+  m = u.match(/youtube\.com\/embed\/([A-Za-z0-9_-]{6,})/);
+  if(m) return m[1];
+
+  return "";
+}
+
 /* ===========================================================
    Emoji Mapping (Keyword-basiert) + Fallback
-   - level: cat | sub | topic
-   - Wir prüfen Label + optional Subcategory/Title für bessere Treffer.
    =========================================================== */
 const EMOJI_RULES = [
+  { keys: ["video", "youtube"], e: "🎬" },
   { keys: ["strom", "elektr", "kabel", "sicherung", "batter", "spannung", "12v", "24v"], e: "⚡" },
   { keys: ["wasser", "pumpe", "tank", "leitung", "hahn", "ventil", "leck", "dicht"], e: "💧" },
   { keys: ["hydraul", "öl", "zylinder", "presse", "kipper"], e: "🛢️" },
@@ -422,12 +459,7 @@ const EMOJI_RULES = [
   { keys: ["werkzeug", "tool", "schlüssel", "schraube"], e: "🧰" },
   { keys: ["check", "prüfung", "kontrolle", "tüv", "hu"], e: "✅" },
 ];
-
-const LEVEL_DEFAULT = {
-  cat: "📁",
-  sub: "🧩",
-  topic: "📌"
-};
+const LEVEL_DEFAULT = { cat: "📁", sub: "🧩", topic: "📌" };
 
 function emojiFor(level, ...texts){
   const hay = texts.map(t => nlow(t)).join(" ");
@@ -628,6 +660,29 @@ function renderTopic(){
   const left = document.createElement("div");
   left.className = "steps";
 
+  // Kategorie "Video": Zeilenebene youtube als großes Video anzeigen
+  if(nlow(t.category) === "video" && t.youtubeId){
+    const videoBox = document.createElement("div");
+    videoBox.className = "intro";
+    videoBox.style.padding = "10px";
+    videoBox.style.background = "#fff";
+    videoBox.style.border = "1px solid var(--border)";
+    videoBox.style.borderRadius = "var(--radius)";
+
+    const iframe = document.createElement("iframe");
+    iframe.width = "100%";
+    iframe.height = "360";
+    iframe.src = `https://www.youtube.com/embed/${t.youtubeId}`;
+    iframe.title = "YouTube video";
+    iframe.frameBorder = "0";
+    iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+    iframe.allowFullscreen = true;
+    iframe.style.borderRadius = "10px";
+
+    videoBox.appendChild(iframe);
+    left.appendChild(videoBox);
+  }
+
   if(t.content){
     const intro = document.createElement("div");
     intro.className = "intro";
@@ -635,7 +690,7 @@ function renderTopic(){
     left.appendChild(intro);
   }
 
-  steps.forEach((text, idx) => {
+  steps.forEach((step, idx) => {
     const row = document.createElement("div");
     row.className = "step";
 
@@ -656,10 +711,59 @@ function renderTopic(){
 
     const hint = document.createElement("div");
     hint.className = "hint";
-    hint.textContent = text;
+    hint.textContent = step.text || "";
 
     txt.appendChild(title);
     txt.appendChild(hint);
+
+    // Medien unter dem Schritt (Bild / PDF / YouTube)
+    const mediaWrap = document.createElement("div");
+    mediaWrap.style.display = "flex";
+    mediaWrap.style.flexDirection = "column";
+    mediaWrap.style.gap = "8px";
+    mediaWrap.style.marginTop = "8px";
+
+    if(step.img && step.img.startsWith("http")){
+      const img = document.createElement("img");
+      img.src = step.img;
+      img.loading = "lazy";
+      img.style.maxWidth = "100%";
+      img.style.height = "auto";
+      img.style.borderRadius = "10px";
+      mediaWrap.appendChild(img);
+    }
+
+    if(step.pdf && step.pdf.startsWith("http")){
+      const a = document.createElement("a");
+      a.href = step.pdf;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = "PDF öffnen";
+      a.style.display = "inline-flex";
+      a.style.alignSelf = "flex-start";
+      a.style.padding = "8px 10px";
+      a.style.borderRadius = "10px";
+      a.style.textDecoration = "none";
+      a.style.border = "1px solid rgba(0,0,0,.15)";
+      mediaWrap.appendChild(a);
+    }
+
+    if(step.youtubeId){
+      const iframe = document.createElement("iframe");
+      iframe.width = "100%";
+      iframe.height = "315";
+      iframe.src = `https://www.youtube.com/embed/${step.youtubeId}`;
+      iframe.title = "YouTube video";
+      iframe.frameBorder = "0";
+      iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+      iframe.allowFullscreen = true;
+      iframe.style.borderRadius = "10px";
+      mediaWrap.appendChild(iframe);
+    }
+
+    if(mediaWrap.children.length){
+      txt.appendChild(mediaWrap);
+    }
 
     row.appendChild(box);
     row.appendChild(txt);
@@ -719,7 +823,8 @@ function bindSearch(){
     }
 
     const hits = topics.filter(t => {
-      const hay = [t.category, t.subcategory, t.title, t.content, ...(t.steps || [])].join(" ").toLowerCase();
+      const stepText = (t.steps || []).map(s => [s.text, s.img, s.pdf, s.youtubeId].filter(Boolean).join(" ")).join(" ");
+      const hay = [t.category, t.subcategory, t.title, t.content, t.youtubeId, stepText].filter(Boolean).join(" ").toLowerCase();
       return hay.includes(q);
     }).slice(0, 20);
 
@@ -801,14 +906,29 @@ function render(){
         const catOrder = Number(norm(r["kategorie_reihenfolge"]) || 9999);
         const subOrder = Number(norm(r["reihenfolge"]) || 9999);
 
+        // Zeilenebene-YouTube (für Kategorie Video)
+        const youtubeId = getYouTubeId(norm(r["youtube"]));
+
+        // Schritte als OBJEKTE (Text + optionale Medien)
         const steps = [];
         for(let i=1;i<=20;i++){
-          const v = norm(r["schritt" + i]);
-          if(v) steps.push(v);
+          const text = norm(r["schritt" + i]);
+          if(!text) continue;
+
+          const imgRaw = norm(r["schritt" + i + "_bild"]);
+          const pdfRaw = norm(r["schritt" + i + "_pdf"]);
+          const ytRaw  = norm(r["schritt" + i + "_youtube"]);
+
+          steps.push({
+            text,
+            img: imgRaw ? toDriveDirectImage(imgRaw) : "",
+            pdf: pdfRaw ? toDrivePreviewPdf(pdfRaw) : "",
+            youtubeId: ytRaw ? getYouTubeId(ytRaw) : ""
+          });
         }
 
         const id = [nlow(category), nlow(subcategory), nlow(title)].join("||");
-        return { id, category, subcategory, title, content, steps, catOrder, subOrder };
+        return { id, category, subcategory, title, content, steps, catOrder, subOrder, youtubeId };
       })
       .filter(t => t.category && t.subcategory && t.title);
 
