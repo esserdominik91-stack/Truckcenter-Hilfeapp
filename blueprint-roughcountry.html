@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rough Country DE — Design Blueprint</title>
+  <style>
+    /* ============================================================
+       DESIGN TOKENS
+    ============================================================ */
+    :root {
+      --black:       #0a0a0a;
+      --black2:      #111111;
+      --black3:      #1a1a1a;
+      --black4:      #242424;
+      --red:         #CC1A1A;
+      --red-dark:    #A31515;
+      --red-glow:    rgba(204, 26, 26, 0.18);
+      --white:       #FFFFFF;
+      --white-dim:   rgba(255,255,255,0.72);
+      --white-muted: rgba(255,255,255,0.38);
+      --gold:        #C8973A;
+      --gold-soft:   rgba(200,151,58,0.15);
+      --border:      rgba(255,255,255,0.08);
+      --border-red:  rgba(204,26,26,0.35);
+      --ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
+      --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--black);
+      color: var(--white);
+      overflow-x: hidden;
+    }
+
+    /* ============================================================
+       BLUEPRINT NAV (Meta-Ebene)
+    ============================================================ */
+    .bp-nav {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      display: flex;
+      gap: 8px;
+      background: rgba(10,10,10,0.92);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 8px;
+      border-radius: 100px;
+    }
+    .bp-btn {
+      padding: 9px 18px;
+      border-radius: 100px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 160ms var(--ease-out);
+      color: var(--white-muted);
+      background: transparent;
+    }
+    .bp-btn:hover { color: var(--white); background: var(--black3); }
+    .bp-btn.active { background: var(--red); color: var(--white); }
+    .bp-btn:active { transform: scale(0.96); }
+
+    /* ============================================================
+       SCREENS
+    ============================================================ */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* ============================================================
+       SHARED COMPONENTS
+    ============================================================ */
+
+    /* TOP ANNOUNCEMENT BAR */
+    .announce-bar {
+      background: var(--red);
+      text-align: center;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+    }
+    .announce-bar span { opacity: 0.75; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .announce-bar strong { color: #fff; }
+
+    /* HEADER */
+    .header {
+      background: var(--black2);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      height: 68px;
+      gap: 32px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
+      color: var(--white);
+      line-height: 1;
+    }
+    .logo em {
+      color: var(--red);
+      font-style: normal;
+    }
+    .partner-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      background: var(--gold-soft);
+      border: 1px solid var(--gold);
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .partner-badge svg { width: 14px; height: 14px; }
+    .nav-links {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+    .nav-link {
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--white-dim);
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 140ms var(--ease-out);
+      border: none;
+      background: transparent;
+      text-decoration: none;
+    }
+    .nav-link:hover { color: var(--white); background: var(--black3); }
+    .header-actions { display: flex; gap: 8px; margin-left: 12px; }
+    .icon-btn {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: var(--black3);
+      border: 1px solid var(--border);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 140ms var(--ease-out);
+    }
+    .icon-btn:hover { background: var(--black4); border-color: rgba(255,255,255,0.16); transform: translateY(-1px); }
+    .icon-btn:active { transform: scale(0.95); }
+    .cart-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 16px 0 12px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--red);
+      border: none;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      transition: all 160ms var(--ease-out);
+    }
+    .cart-btn:hover { background: var(--red-dark); transform: translateY(-1px); box-shadow: 0 4px 16px var(--red-glow); }
+    .cart-btn:active { transform: scale(0.97); }
+
+    /* VEHICLE FINDER PERSISTENT */
+    .vehicle-strip {
+      background: var(--black3);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .vehicle-strip label { font-size: 12px; color: var(--white-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .vehicle-select {
+      background: var(--black2);
+      border: 1px solid var(--border);
+      color: var(--white-dim);
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 140ms var(--ease-out);
+    }
+    .vehicle-select:hover { border-color: rgba(255,255,255,0.2); color: var(--white); }
+    .vehicle-active {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 14px;
+      background: var(--red-glow);
+      border: 1px solid var(--border-red);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--red);
+    }
+    .vehicle-dot { width: 6px; height: 6px; background: var(--red); border-radius: 50%; animation: pulse-dot 2s infinite; }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    /* ============================================================
+       SCREEN 1: HOMEPAGE
+    ============================================================ */
+
+    /* HERO */
+    .hero {
+      position: relative;
+      height: 580px;
+      overflow: hidden;
+      background: var(--black2);
+      display: flex;
+      align-items: flex-end;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 80% at 70% 50%, rgba(180,20,20,0.12) 0%, transparent 70%),
+        linear-gradient(105deg, #0a0a0a 0%, #1a1010 40%, #0f0505 100%);
+    }
+    .hero-truck {
+      position: absolute;
+      right: -20px;
+      bottom: 0;
+      width: 680px;
+      height: 100%;
+      background:
+        radial-gradient(ellipse 50% 40% at 60% 90%, rgba(204,26,26,0.25) 0%, transparent 60%),
+        linear-gradient(170deg, transparent 20%, rgba(204,26,26,0.06) 80%);
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+    }
+    .truck-placeholder {
+      width: 620px;
+      height: 340px;
+      background: linear-gradient(135deg, var(--black3) 0%, var(--black4) 100%);
+      border-radius: 12px 12px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 80px;
+      opacity: 0.6;
+      border: 1px solid var(--border);
+      border-bottom: none;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      padding: 0 40px 52px;
+      max-width: 600px;
+    }
+    .auth-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: var(--gold-soft);
+      border: 1px solid rgba(200,151,58,0.4);
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .auth-pill::before { content: "✓"; font-size: 10px; }
+    .hero-headline {
+      font-size: 68px;
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .hero-headline .line-red { color: var(--red); }
+    .hero-headline .line-small {
+      font-size: 28px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      color: var(--white-dim);
+      display: block;
+      margin-top: 8px;
+    }
+    .hero-sub {
+      font-size: 15px;
+      color: var(--white-dim);
+      line-height: 1.5;
+      margin-bottom: 32px;
+      max-width: 440px;
+    }
+    .hero-actions { display: flex; gap: 12px; }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      background: var(--red);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: all 160ms var(--ease-out);
+      text-decoration: none;
+    }
+    .btn-primary:hover { background: var(--red-dark); transform: translateY(-2px); box-shadow: 0 8px 24px var(--red-glow); }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 28px;
+      background: transparent;
+      color: var(--white-dim);
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 160ms var(--ease-out);
+    }
+    .btn-ghost:hover { color: var(--white); border-color: rgba(255,255,255,0.24); background: var(--black3); transform: translateY(-2px); }
+    .btn-ghost:active { transform: scale(0.97); }
+
+    /* TRUST BAR */
+    .trust-bar {
+      background: var(--black3);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px;
+    }
+    .trust-inner {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 20px 0;
+      border-right: 1px solid var(--border);
+      padding-right: 32px;
+      padding-left: 32px;
+      transition: all 160ms var(--ease-out);
+    }
+    .trust-item:first-child { padding-left: 0; }
+    .trust-item:last-child { border-right: none; }
+    .trust-item:hover { background: rgba(255,255,255,0.02); }
+    .trust-icon {
+      width: 40px; height: 40px;
+      background: var(--red-glow);
+      border: 1px solid var(--border-red);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .trust-text strong { display: block; font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+    .trust-text span { font-size: 12px; color: var(--white-muted); }
+
+    /* SECTION */
+    .section { padding: 64px 40px; max-width: 1280px; margin: 0 auto; }
+    .section-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 32px;
+    }
+    .section-title {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
+    }
+    .section-title em { color: var(--red); font-style: normal; }
+    .section-sub { font-size: 14px; color: var(--white-muted); margin-top: 4px; }
+    .see-all {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--red);
+      cursor: pointer;
+      transition: all 140ms;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .see-all:hover { opacity: 0.75; }
+
+    /* CATEGORY GRID */
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 12px;
+    }
+    .cat-tile {
+      background: var(--black3);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: transform 180ms var(--ease-out),
+                  box-shadow 180ms var(--ease-out),
+                  border-color 180ms var(--ease-out),
+                  background 180ms var(--ease-out);
+      text-align: center;
+    }
+    .cat-tile:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.5), 0 0 0 1px var(--border-red);
+      border-color: var(--border-red);
+      background: var(--black4);
+    }
+    .cat-tile:active { transform: scale(0.97); }
+    .cat-img {
+      width: 72px;
+      height: 56px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--black4), var(--black2));
+      display: grid;
+      place-items: center;
+      font-size: 28px;
+    }
+    .cat-label { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--white-dim); line-height: 1.3; }
+
+    /* US-SPEC BANNER */
+    .us-banner {
+      background: linear-gradient(135deg, #0f0505 0%, #1a0808 50%, #0f0505 100%);
+      border: 1px solid var(--border-red);
+      border-radius: 16px;
+      padding: 40px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 40px;
+      margin: 0 40px 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .us-banner::before {
+      content: "";
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(204,26,26,0.2) 0%, transparent 70%);
+    }
+    .us-banner-text h2 { font-size: 28px; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .us-banner-text h2 span { color: var(--red); }
+    .us-banner-text p { font-size: 14px; color: var(--white-dim); line-height: 1.6; max-width: 500px; }
+    .us-specs {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .us-spec-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--white-dim);
+    }
+    .us-spec-item::before { content: "✓"; color: var(--red); font-weight: 900; font-size: 14px; }
+
+    /* PRODUCT GRID */
+    .product-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .product-card {
+      background: var(--black3);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 200ms var(--ease-out),
+                  box-shadow 200ms var(--ease-out),
+                  border-color 200ms var(--ease-out);
+      position: relative;
+    }
+    .product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+      border-color: rgba(255,255,255,0.14);
+    }
+    .product-card:active { transform: scale(0.98); }
+    .product-img {
+      height: 200px;
+      background: linear-gradient(135deg, var(--black2), var(--black4));
+      display: grid;
+      place-items: center;
+      font-size: 48px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .product-img::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.4));
+    }
+    .us-tag {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 1;
+      padding: 4px 10px;
+      background: rgba(204,26,26,0.9);
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #fff;
+    }
+    .new-tag {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 1;
+      padding: 4px 10px;
+      background: var(--gold);
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #000;
+    }
+    .product-info { padding: 16px; }
+    .product-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; line-height: 1.3; }
+    .product-sku { font-size: 11px; color: var(--white-muted); margin-bottom: 10px; letter-spacing: 0.04em; }
+    .product-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .product-price { font-size: 18px; font-weight: 900; color: var(--white); }
+    .product-price small { font-size: 11px; font-weight: 400; color: var(--white-muted); display: block; }
+    .add-btn {
+      width: 36px; height: 36px;
+      border-radius: 9px;
+      background: var(--red);
+      border: none;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: all 160ms var(--ease-out);
+    }
+    .add-btn:hover { background: var(--red-dark); transform: scale(1.08); }
+    .add-btn:active { transform: scale(0.94); }
+
+    /* BUILDS SECTION */
+    .builds-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .build-card {
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      height: 260px;
+      background: var(--black3);
+      border: 1px solid var(--border);
+      transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+    }
+    .build-card:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(0,0,0,0.7); }
+    .build-card:active { transform: scale(0.98); }
+    .build-bg {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 64px;
+      opacity: 0.3;
+    }
+    .build-gradient {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, transparent 50%);
+    }
+    .build-info {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 20px;
+    }
+    .build-name { font-size: 16px; font-weight: 800; margin-bottom: 2px; }
+    .build-meta { font-size: 12px; color: var(--white-muted); display: flex; align-items: center; gap: 8px; }
+    .build-state {
+      padding: 3px 8px;
+      background: var(--black3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--white-dim);
+    }
+
+    /* ============================================================
+       SCREEN 2: PRODUCT DETAIL
+    ============================================================ */
+    .pdp-layout {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 48px;
+      padding: 40px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    .pdp-gallery {
+      position: relative;
+    }
+    .pdp-main-img {
+      height: 460px;
+      background: var(--black3);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 96px;
+      margin-bottom: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+    .pdp-main-img::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(204,26,26,0.06) 0%, transparent 70%);
+    }
+    .pdp-thumbs { display: flex; gap: 10px; }
+    .pdp-thumb {
+      width: 72px; height: 72px;
+      border-radius: 10px;
+      background: var(--black3);
+      border: 1px solid var(--border);
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      cursor: pointer;
+      transition: all 140ms var(--ease-out);
+    }
+    .pdp-thumb:hover { border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
+    .pdp-thumb.active { border-color: var(--red); background: var(--red-glow); }
+    .pdp-thumb:active { transform: scale(0.95); }
+
+    .pdp-info { padding-top: 8px; }
+    .pdp-badges { display: flex; gap: 8px; margin-bottom: 16px; }
+    .badge {
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .badge-red { background: rgba(204,26,26,0.15); border: 1px solid var(--border-red); color: var(--red); }
+    .badge-gold { background: var(--gold-soft); border: 1px solid rgba(200,151,58,0.3); color: var(--gold); }
+    .badge-white { background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--white-dim); }
+    .pdp-title { font-size: 30px; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 4px; line-height: 1.1; }
+    .pdp-sku { font-size: 12px; color: var(--white-muted); margin-bottom: 20px; letter-spacing: 0.04em; }
+    .pdp-rating { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .stars { color: var(--gold); font-size: 14px; letter-spacing: 2px; }
+    .rating-count { font-size: 13px; color: var(--white-muted); }
+    .pdp-price-block {
+      background: var(--black3);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .pdp-price { font-size: 40px; font-weight: 900; letter-spacing: -0.03em; margin-bottom: 4px; }
+    .pdp-price-note { font-size: 12px; color: var(--white-muted); }
+    .pdp-origin {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--white-dim);
+    }
+    .pdp-origin strong { color: var(--white); }
+    .flag { font-size: 18px; }
+
+    .pdp-options { margin-bottom: 20px; }
+    .option-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--white-muted); margin-bottom: 8px; }
+    .option-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .option-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--white-dim);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 140ms var(--ease-out);
+    }
+    .option-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--white); }
+    .option-btn.selected { border-color: var(--red); background: var(--red-glow); color: var(--white); }
+    .option-btn:active { transform: scale(0.95); }
+
+    .pdp-atc {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .atc-btn {
+      flex: 1;
+      padding: 16px;
+      background: var(--red);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 160ms var(--ease-out);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .atc-btn:hover { background: var(--red-dark); transform: translateY(-2px); box-shadow: 0 8px 24px var(--red-glow); }
+    .atc-btn:active { transform: scale(0.97); box-shadow: none; }
+    .wish-btn {
+      width: 52px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--black3);
+      color: var(--white-dim);
+      font-size: 20px;
+      cursor: pointer;
+      transition: all 140ms var(--ease-out);
+      display: grid;
+      place-items: center;
+    }
+    .wish-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--white); transform: scale(1.05); }
+    .wish-btn:active { transform: scale(0.94); }
+
+    .trust-mini {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .trust-mini-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      background: var(--black3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--white-dim);
+    }
+    .trust-mini-item .ti { font-size: 18px; }
+
+    /* ============================================================
+       SCREEN 3: VEHICLE FINDER
+    ============================================================ */
+    .finder-hero {
+      background: var(--black2);
+      border-bottom: 1px solid var(--border);
+      padding: 52px 40px;
+      text-align: center;
+    }
+    .finder-hero h1 { font-size: 48px; font-weight: 900; letter-spacing: -0.03em; text-transform: uppercase; margin-bottom: 8px; }
+    .finder-hero h1 span { color: var(--red); }
+    .finder-hero p { font-size: 15px; color: var(--white-dim); }
+    .finder-steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin: 32px 40px;
+    }
+    .finder-step {
+      padding: 28px 24px;
+      background: var(--black3);
+      border-right: 1px solid var(--border);
+      position: relative;
+    }
+    .finder-step:last-child { border-right: none; }
+    .finder-step.active { background: var(--black4); }
+    .finder-step.done { background: rgba(204,26,26,0.06); }
+    .step-num {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--white-muted);
+      margin-bottom: 8px;
+    }
+    .step-num.done-num { color: var(--red); }
+    .step-label { font-size: 18px; font-weight: 800; margin-bottom: 12px; }
+    .step-select-list { display: flex; flex-direction: column; gap: 8px; }
+    .step-option {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--black2);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--white-dim);
+      cursor: pointer;
+      transition: all 140ms var(--ease-out);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .step-option:hover { border-color: rgba(255,255,255,0.2); color: var(--white); background: var(--black3); }
+    .step-option.selected { border-color: var(--red); background: var(--red-glow); color: var(--white); }
+    .step-option:active { transform: scale(0.98); }
+    .step-arrow { color: var(--white-muted); font-size: 12px; }
+    .step-done-display {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--red-glow);
+      border: 1px solid var(--border-red);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--red);
+    }
+    .finder-result-preview {
+      margin: 0 40px 48px;
+      padding: 32px;
+      background: var(--black3);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    .finder-vehicle-visual {
+      width: 200px;
+      height: 120px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--black2), var(--black4));
+      display: grid;
+      place-items: center;
+      font-size: 48px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .finder-result-text h3 { font-size: 22px; font-weight: 900; margin-bottom: 4px; }
+    .finder-result-text p { font-size: 14px; color: var(--white-muted); margin-bottom: 16px; }
+    .finder-count {
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--red);
+      display: inline-block;
+    }
+    .finder-count-label { font-size: 13px; color: var(--white-muted); }
+
+    /* ============================================================
+       SCREEN 4: THANK YOU
+    ============================================================ */
+    .thankyou {
+      min-height: 100vh;
+      background: var(--black);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 60px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    .ty-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 40%, rgba(204,26,26,0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 20% 80%, rgba(200,151,58,0.05) 0%, transparent 60%);
+    }
+    .ty-landscape {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 240px;
+      background: linear-gradient(to top, #0f0505 0%, transparent 100%);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      font-size: 72px;
+      padding-bottom: 24px;
+      opacity: 0.4;
+    }
+    .ty-content { position: relative; z-index: 2; max-width: 540px; }
+    .ty-check {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(204,26,26,0.15);
+      border: 2px solid var(--red);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin: 0 auto 32px;
+    }
+    .ty-title {
+      font-size: 52px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      text-transform: uppercase;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .ty-title span { color: var(--red); }
+    .ty-tagline {
+      font-size: 18px;
+      color: var(--white-dim);
+      font-style: italic;
+      margin-bottom: 40px;
+      font-weight: 300;
+      letter-spacing: 0.02em;
+    }
+    .ty-order {
+      background: var(--black3);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 28px;
+      margin-bottom: 32px;
+      display: flex;
+      gap: 32px;
+      align-items: center;
+      justify-content: center;
+    }
+    .ty-order-item { text-align: left; }
+    .ty-order-item label { font-size: 11px; color: var(--white-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .ty-order-item strong { display: block; font-size: 15px; font-weight: 700; margin-top: 2px; }
+    .ty-actions { display: flex; gap: 12px; justify-content: center; }
+    .ty-share {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 22px;
+      background: var(--black3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--white-dim);
+      cursor: pointer;
+      transition: all 140ms var(--ease-out);
+    }
+    .ty-share:hover { color: var(--white); border-color: rgba(255,255,255,0.2); transform: translateY(-1px); }
+    .ty-share:active { transform: scale(0.97); }
+
+    /* ============================================================
+       RESPONSIVE BASICS
+    ============================================================ */
+    @media (max-width: 1100px) {
+      .cat-grid { grid-template-columns: repeat(4, 1fr); }
+      .product-grid { grid-template-columns: repeat(2, 1fr); }
+      .trust-inner { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .header { padding: 0 20px; }
+      .hero-content { padding: 0 20px 40px; }
+      .hero-headline { font-size: 44px; }
+      .hero { height: 460px; }
+      .section { padding: 40px 20px; }
+      .hero-truck { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     BLUEPRINT NAVIGATOR
+============================================================ -->
+<nav class="bp-nav">
+  <button class="bp-btn active" onclick="showScreen('home', this)">1 · Homepage</button>
+  <button class="bp-btn" onclick="showScreen('pdp', this)">2 · Produkt</button>
+  <button class="bp-btn" onclick="showScreen('finder', this)">3 · Fahrzeug-Finder</button>
+  <button class="bp-btn" onclick="showScreen('thankyou', this)">4 · Nach dem Kauf</button>
+</nav>
+
+<!-- ============================================================
+     SCREEN 1: HOMEPAGE
+============================================================ -->
+<div class="screen active" id="screen-home">
+
+  <!-- Announcement -->
+  <div class="announce-bar">
+    <div><strong>KOSTENLOSER VERSAND</strong> ab 150€ · DE/AT/CH</div>
+    <span>|</span>
+    <div><strong>OFFIZIELLER VERTRIEBSPARTNER</strong> · Rough Country USA</div>
+    <span>|</span>
+    <div><strong>DEUTSCHSPRACHIGER SUPPORT</strong> · Mo–Fr 8–17 Uhr</div>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">Rough<em>Country</em><br><span style="font-size:11px;letter-spacing:0.12em;color:var(--white-muted);font-weight:600">DEUTSCHLAND</span></div>
+    <div class="partner-badge">
+      <svg viewBox="0 0 14 14" fill="currentColor"><path d="M7 0L8.8 5h5.2l-4.2 3 1.6 5L7 10.2 2.6 13l1.6-5L0 5h5.2z"/></svg>
+      Offizieller US-Partner
+    </div>
+    <nav class="nav-links">
+      <a class="nav-link" href="#">Lift Kits</a>
+      <a class="nav-link" href="#">Stoßdämpfer</a>
+      <a class="nav-link" href="#">Beleuchtung</a>
+      <a class="nav-link" href="#">Räder & Reifen</a>
+      <a class="nav-link" href="#">Zubehör</a>
+      <a class="nav-link" href="#">Builds</a>
+    </nav>
+    <div class="header-actions">
+      <button class="icon-btn">🔍</button>
+      <button class="icon-btn">👤</button>
+      <button class="cart-btn">🛒 Warenkorb <span style="background:rgba(255,255,255,0.2);padding:2px 7px;border-radius:6px;font-size:11px">0</span></button>
+    </div>
+  </header>
+
+  <!-- Vehicle Strip -->
+  <div class="vehicle-strip">
+    <label>Dein Fahrzeug:</label>
+    <select class="vehicle-select" onchange="activateVehicle(this)">
+      <option value="">Fahrzeug wählen →</option>
+      <option value="RAM 1500 (2019–2024)">RAM 1500 (2019–2024)</option>
+      <option value="Ford F-150 (2021–2024)">Ford F-150 (2021–2024)</option>
+      <option value="Chevrolet Silverado (2019–2024)">Chevrolet Silverado (2019–2024)</option>
+      <option value="GMC Sierra (2019–2024)">GMC Sierra (2019–2024)</option>
+    </select>
+    <span id="vehicle-active-badge" style="display:none" class="vehicle-active">
+      <span class="vehicle-dot"></span>
+      <span id="vehicle-name">—</span>
+    </span>
+    <span style="font-size:12px;color:var(--white-muted);margin-left:auto">Nur passende Produkte anzeigen</span>
+  </div>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-truck">
+      <div class="truck-placeholder">🛻</div>
+    </div>
+    <div class="hero-content">
+      <div class="auth-pill">Offizieller Rough Country Vertriebspartner Deutschland</div>
+      <h1 class="hero-headline">
+        Performance.<br>
+        <span class="line-red">Keine Kompromisse.</span>
+        <span class="line-small">Direkt aus den USA. Von hier geliefert.</span>
+      </h1>
+      <p class="hero-sub">Dieselben Produkte, die du auf roughcountry.com siehst — mit deutschem Support, schneller Lieferung und Rückgaberecht nach EU-Recht.</p>
+      <div class="hero-actions">
+        <button class="btn-primary" onclick="showScreen('finder', document.querySelector('.bp-btn:nth-child(3)'))">🚙 Produkte für mein Fahrzeug</button>
+        <button class="btn-ghost">Alle Produkte ansehen →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust Bar -->
+  <div class="trust-bar">
+    <div class="trust-inner">
+      <div class="trust-item">
+        <div class="trust-icon">🇺🇸</div>
+        <div class="trust-text">
+          <strong>100 % US-Original</strong>
+          <span>Identisch mit roughcountry.com</span>
+        </div>
+      </div>
+      <div class="trust-item">
+        <div class="trust-icon">🚚</div>
+        <div class="trust-text">
+          <strong>Lieferung in 3–5 Tagen</strong>
+          <span>Kein Zoll, kein Import-Stress</span>
+        </div>
+      </div>
+      <div class="trust-item">
+        <div class="trust-icon">🇩🇪</div>
+        <div class="trust-text">
+          <strong>Deutschsprachiger Support</strong>
+          <span>Team in Lüneburg · Mo–Fr 8–17</span>
+        </div>
+      </div>
+      <div class="trust-item">
+        <div class="trust-icon">↩️</div>
+        <div class="trust-text">
+          <strong>30 Tage Rückgabe</strong>
+          <span>Volles EU-Rückgaberecht</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- US-Spec Banner -->
+  <div class="section" style="padding-bottom: 0">
+    <div class="us-banner" style="margin: 0; border-radius: 16px;">
+      <div class="us-banner-text">
+        <h2>Warum bei uns kaufen?<br>Weil wir <span>Amerika zu dir bringen.</span></h2>
+        <p>Als offizieller Vertriebspartner von Rough Country USA erhältst du exakt dieselben Produkte wie Truck-Enthusiasten in den USA — mit dem Komfort des deutschen Handels.</p>
+      </div>
+      <div class="us-specs">
+        <div class="us-spec-item">Originalverpackung direkt von Rough Country USA</div>
+        <div class="us-spec-item">Gleiche Artikelnummern wie auf roughcountry.com</div>
+        <div class="us-spec-item">Deutsches Gewährleistungsrecht inklusive</div>
+        <div class="us-spec-item">Kein Zoll, keine Einfuhrsteuer</div>
+        <div class="us-spec-item">Montageservice in Lüneburg verfügbar</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Categories -->
+  <div class="section">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Produkte nach <em>Kategorie</em></h2>
+        <p class="section-sub">Alle Kategorien · 100 % US-Original</p>
+      </div>
+    </div>
+    <div class="cat-grid">
+      <div class="cat-tile"><div class="cat-img">🏗️</div><div class="cat-label">Lift Kits</div></div>
+      <div class="cat-tile"><div class="cat-img">🔧</div><div class="cat-label">Stoß­dämpfer</div></div>
+      <div class="cat-tile"><div class="cat-img">🪜</div><div class="cat-label">Tritt­bretter</div></div>
+      <div class="cat-tile"><div class="cat-img">🛡️</div><div class="cat-label">Stoß­stangen</div></div>
+      <div class="cat-tile"><div class="cat-img">💡</div><div class="cat-label">Beleuch­tung</div></div>
+      <div class="cat-tile"><div class="cat-img">🛞</div><div class="cat-label">Räder & Reifen</div></div>
+      <div class="cat-tile"><div class="cat-img">📦</div><div class="cat-label">Zubehör</div></div>
+    </div>
+  </div>
+
+  <!-- Products -->
+  <div class="section" style="padding-top: 0">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Bestseller <em>USA → DE</em></h2>
+        <p class="section-sub">Die meistverkauften Produkte auf roughcountry.com — jetzt sofort in Deutschland verfügbar</p>
+      </div>
+      <a class="see-all" href="#">Alle anzeigen →</a>
+    </div>
+    <div class="product-grid">
+      <div class="product-card" onclick="showScreen('pdp', document.querySelector('.bp-btn:nth-child(2)'))">
+        <div class="product-img">🏗️<div class="us-tag">US-Original</div></div>
+        <div class="product-info">
+          <div class="product-name">2.5" Leveling Kit Strut Spacers</div>
+          <div class="product-sku">RC # 73500</div>
+          <div class="product-footer">
+            <div class="product-price">289 €<small>inkl. 19% MwSt.</small></div>
+            <button class="add-btn" onclick="event.stopPropagation()">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="product-card">
+        <div class="product-img">💡<div class="us-tag">US-Original</div><div class="new-tag">Neu</div></div>
+        <div class="product-info">
+          <div class="product-name">Black Series LED Light Bar 50"</div>
+          <div class="product-sku">RC # 70950BL</div>
+          <div class="product-footer">
+            <div class="product-price">449 €<small>inkl. 19% MwSt.</small></div>
+            <button class="add-btn" onclick="event.stopPropagation()">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="product-card">
+        <div class="product-img">🔧<div class="us-tag">US-Original</div></div>
+        <div class="product-info">
+          <div class="product-name">N3 Performance Stoßdämpfer Set</div>
+          <div class="product-sku">RC # 23223</div>
+          <div class="product-footer">
+            <div class="product-price">599 €<small>inkl. 19% MwSt.</small></div>
+            <button class="add-btn" onclick="event.stopPropagation()">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="product-card">
+        <div class="product-img">🛡️<div class="us-tag">US-Original</div></div>
+        <div class="product-info">
+          <div class="product-name">Front Winch Bumper — Black</div>
+          <div class="product-sku">RC # 10800</div>
+          <div class="product-footer">
+            <div class="product-price">899 €<small>inkl. 19% MwSt.</small></div>
+            <button class="add-btn" onclick="event.stopPropagation()">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Builds -->
+  <div class="section" style="padding-top: 0; padding-bottom: 120px">
+    <div class="section-header">
+      <div>
+        <h2 class="section-title">Community <em>Builds</em></h2>
+        <p class="section-sub">Echte Fahrzeuge. Echte Kunden. Aus Deutschland, Österreich, der Schweiz.</p>
+      </div>
+      <a class="see-all" href="#">Alle Builds →</a>
+    </div>
+    <div class="builds-grid">
+      <div class="build-card">
+        <div class="build-bg">🛻</div>
+        <div class="build-gradient"></div>
+        <div class="build-info">
+          <div class="build-name">RAM 1500 · 4" Lift</div>
+          <div class="build-meta"><span class="build-state">Bayern</span> · Marcus T. · 2024</div>
+        </div>
+      </div>
+      <div class="build-card">
+        <div class="build-bg">🚙</div>
+        <div class="build-gradient"></div>
+        <div class="build-info">
+          <div class="build-name">F-150 · Full LED Build</div>
+          <div class="build-meta"><span class="build-state">NRW</span> · Stefan K. · 2024</div>
+        </div>
+      </div>
+      <div class="build-card" style="background: linear-gradient(135deg, var(--black3), var(--black4)); border: 2px dashed var(--border); display:flex; align-items:center; justify-content:center; flex-direction:column; gap: 12px; cursor: pointer;">
+        <div style="font-size: 36px; opacity: 0.5">📸</div>
+        <div style="font-size: 14px; font-weight: 700; color: var(--white-muted)">Deinen Build einreichen</div>
+        <div style="font-size: 12px; color: var(--white-muted); text-align:center; max-width: 160px">Zeig der Community, was du gebaut hast</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /screen-home -->
+
+<!-- ============================================================
+     SCREEN 2: PRODUKT-DETAIL
+============================================================ -->
+<div class="screen" id="screen-pdp">
+  <div class="announce-bar">
+    <strong>KOSTENLOSER VERSAND</strong> ab 150€ · <strong>100% US-ORIGINAL</strong> · Identisch mit roughcountry.com
+  </div>
+  <header class="header">
+    <div class="logo">Rough<em>Country</em><br><span style="font-size:11px;letter-spacing:0.12em;color:var(--white-muted);font-weight:600">DEUTSCHLAND</span></div>
+    <div class="partner-badge"><svg viewBox="0 0 14 14" fill="currentColor"><path d="M7 0L8.8 5h5.2l-4.2 3 1.6 5L7 10.2 2.6 13l1.6-5L0 5h5.2z"/></svg>Offizieller US-Partner</div>
+    <div style="display:flex;align-items:center;gap:8px;color:var(--white-muted);font-size:13px;margin-left:20px">
+      <span onclick="showScreen('home', document.querySelector('.bp-btn:nth-child(1)'))" style="cursor:pointer;color:var(--red)">Home</span>
+      <span>›</span><span>Lift Kits</span><span>›</span><span style="color:var(--white)">2.5" Leveling Kit</span>
+    </div>
+    <div class="header-actions" style="margin-left:auto">
+      <button class="icon-btn">🔍</button>
+      <button class="cart-btn">🛒 Warenkorb <span style="background:rgba(255,255,255,0.2);padding:2px 7px;border-radius:6px;font-size:11px">0</span></button>
+    </div>
+  </header>
+
+  <div class="pdp-layout">
+    <!-- Gallery -->
+    <div class="pdp-gallery">
+      <div class="pdp-main-img">🏗️</div>
+      <div class="pdp-thumbs">
+        <div class="pdp-thumb active">🏗️</div>
+        <div class="pdp-thumb">📐</div>
+        <div class="pdp-thumb">🔧</div>
+        <div class="pdp-thumb">📦</div>
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div class="pdp-info">
+      <div class="pdp-badges">
+        <span class="badge badge-red">🇺🇸 US-Original</span>
+        <span class="badge badge-gold">⭐ Bestseller USA</span>
+        <span class="badge badge-white">RC # 73500</span>
+      </div>
+      <h1 class="pdp-title">2.5" Leveling Kit<br>Strut Spacers</h1>
+      <div class="pdp-sku">Artikelnummer: RC-73500 · Identisch mit Artikel auf roughcountry.com</div>
+      <div class="pdp-rating">
+        <div class="stars">★★★★★</div>
+        <div class="rating-count">4.8 · 2.847 Bewertungen auf roughcountry.com</div>
+      </div>
+
+      <div class="pdp-price-block">
+        <div class="pdp-price">289 €</div>
+        <div class="pdp-price-note">inkl. 19% MwSt. · Versandkostenfrei</div>
+        <div class="pdp-origin">
+          <span class="flag">🇺🇸</span>
+          Original von <strong>Rough Country USA</strong> &nbsp;→&nbsp; <strong>direkt an dich</strong> · kein Zoll
+        </div>
+      </div>
+
+      <div class="pdp-options">
+        <div class="option-label">Fahrzeug</div>
+        <div class="option-btns">
+          <button class="option-btn selected">RAM 1500 2019–2024</button>
+          <button class="option-btn">F-150 2021+</button>
+          <button class="option-btn">Silverado 2019+</button>
+        </div>
+      </div>
+
+      <div class="pdp-atc">
+        <button class="atc-btn" onclick="showScreen('thankyou', document.querySelector('.bp-btn:nth-child(4)'))">
+          🛒 In den Warenkorb
+        </button>
+        <button class="wish-btn">♡</button>
+      </div>
+
+      <div class="trust-mini">
+        <div class="trust-mini-item"><span class="ti">🚚</span>Lieferung in 3–5 Werktagen</div>
+        <div class="trust-mini-item"><span class="ti">↩️</span>30 Tage Rückgabe · EU-Recht</div>
+        <div class="trust-mini-item"><span class="ti">🇺🇸</span>100 % US-Original · RC #73500</div>
+        <div class="trust-mini-item"><span class="ti">📞</span>Support: Lüneburg · 04131 …</div>
+      </div>
+    </div>
+  </div>
+</div><!-- /screen-pdp -->
+
+<!-- ============================================================
+     SCREEN 3: VEHICLE FINDER
+============================================================ -->
+<div class="screen" id="screen-finder">
+  <div class="announce-bar">
+    <strong>FAHRZEUG WÄHLEN</strong> — Nur passende US-Originalprodukte werden angezeigt
+  </div>
+  <header class="header">
+    <div class="logo">Rough<em>Country</em><br><span style="font-size:11px;letter-spacing:0.12em;color:var(--white-muted);font-weight:600">DEUTSCHLAND</span></div>
+    <div class="partner-badge"><svg viewBox="0 0 14 14" fill="currentColor"><path d="M7 0L8.8 5h5.2l-4.2 3 1.6 5L7 10.2 2.6 13l1.6-5L0 5h5.2z"/></svg>Offizieller US-Partner</div>
+    <div class="header-actions" style="margin-left:auto">
+      <button class="cart-btn">🛒 Warenkorb</button>
+    </div>
+  </header>
+
+  <div class="finder-hero">
+    <h1>Finde Produkte für<br><span>dein Fahrzeug</span></h1>
+    <p>Wähle Marke, Modell und Baujahr — wir zeigen dir nur passende US-Originalprodukte</p>
+  </div>
+
+  <div class="finder-steps">
+    <div class="finder-step done">
+      <div class="step-num done-num">✓ Schritt 1</div>
+      <div class="step-label">Marke</div>
+      <div class="step-done-display">🇺🇸 RAM</div>
+    </div>
+    <div class="finder-step active">
+      <div class="step-num">Schritt 2</div>
+      <div class="step-label">Modell</div>
+      <div class="step-select-list">
+        <div class="step-option selected">1500 <span class="step-arrow">✓</span></div>
+        <div class="step-option">2500 HD</div>
+        <div class="step-option">3500 HD</div>
+      </div>
+    </div>
+    <div class="finder-step">
+      <div class="step-num">Schritt 3</div>
+      <div class="step-label">Baujahr</div>
+      <div class="step-select-list">
+        <div class="step-option" style="opacity:0.4">2024</div>
+        <div class="step-option" style="opacity:0.4">2019–2023</div>
+        <div class="step-option" style="opacity:0.4">2013–2018</div>
+      </div>
+    </div>
+    <div class="finder-step">
+      <div class="step-num">Schritt 4</div>
+      <div class="step-label">Kategorie</div>
+      <div class="step-select-list">
+        <div class="step-option" style="opacity:0.4">Alle</div>
+        <div class="step-option" style="opacity:0.4">Lift Kits</div>
+        <div class="step-option" style="opacity:0.4">Stoßdämpfer</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="finder-result-preview">
+    <div class="finder-vehicle-visual">🛻</div>
+    <div class="finder-result-text">
+      <h3>RAM 1500 · Modell auswählen</h3>
+      <p>Wähle dein genaues Modell und Baujahr, um passende Produkte zu sehen</p>
+      <div>
+        <span class="finder-count">143</span>
+        <span class="finder-count-label"> passende US-Originalprodukte für RAM-Fahrzeuge verfügbar</span>
+      </div>
+    </div>
+    <button class="btn-primary" style="margin-left:auto;white-space:nowrap">Produkte anzeigen →</button>
+  </div>
+</div><!-- /screen-finder -->
+
+<!-- ============================================================
+     SCREEN 4: THANK YOU
+============================================================ -->
+<div class="screen" id="screen-thankyou">
+  <div class="thankyou">
+    <div class="ty-bg"></div>
+    <div class="ty-landscape">🌄🛻</div>
+    <div class="ty-content">
+      <div class="ty-check">✓</div>
+      <h1 class="ty-title">Bestellung<br><span>bestätigt.</span></h1>
+      <p class="ty-tagline">"Bereit für die nächste Ausfahrt."</p>
+
+      <div class="ty-order">
+        <div class="ty-order-item">
+          <label>Bestellnummer</label>
+          <strong>RC-DE-2024-88421</strong>
+        </div>
+        <div class="ty-order-item">
+          <label>Produkt</label>
+          <strong>2.5" Leveling Kit · RC #73500</strong>
+        </div>
+        <div class="ty-order-item">
+          <label>Lieferung</label>
+          <strong>3–5 Werktage</strong>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 28px; padding: 16px 24px; background: var(--black3); border: 1px solid var(--border); border-radius: 12px; font-size: 14px; color: var(--white-dim); line-height: 1.6;">
+        Du erhältst jetzt dieselbe Bestätigungs-E-Mail wie Kunden in den USA.<br>
+        <strong style="color:var(--white)">Dein Paket kommt direkt aus unserem Lager in Lüneburg.</strong>
+      </div>
+
+      <div class="ty-actions">
+        <button class="ty-share" onclick="showScreen('home', document.querySelector('.bp-btn:nth-child(1)'))">← Zurück zum Shop</button>
+        <button class="ty-share">📸 Build einreichen</button>
+        <button class="btn-primary">Bestellung verfolgen →</button>
+      </div>
+    </div>
+  </div>
+</div><!-- /screen-thankyou -->
+
+<script>
+  function showScreen(id, btn) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.bp-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+    if (btn) btn.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function activateVehicle(select) {
+    const badge = document.getElementById('vehicle-active-badge');
+    const name  = document.getElementById('vehicle-name');
+    if (select.value) {
+      badge.style.display = 'flex';
+      name.textContent = select.value;
+      select.style.display = 'none';
+    }
+  }
+
+  // Option button toggle
+  document.querySelectorAll('.option-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      this.closest('.option-btns').querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+      this.classList.add('selected');
+    });
+  });
+  document.querySelectorAll('.step-option').forEach(btn => {
+    btn.addEventListener('click', function() {
+      if (this.style.opacity === '0.4') return;
+      this.closest('.step-select-list').querySelectorAll('.step-option').forEach(b => b.classList.remove('selected'));
+      this.classList.add('selected');
+    });
+  });
+</script>
+
+</body>
+</html>
